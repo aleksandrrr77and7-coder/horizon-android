@@ -40,11 +40,23 @@ const SEES: u8 = u8::MAX;
 
 /// VisGraph connectivity per column, one entry per section (bottom first).
 /// A missing column or section connects every face.
+///
+/// Voxelix V03.1: `max_non_air` caches the highest section index in the
+/// column whose visibility differs from `ALL_VISIBLE`, or `-1` when every
+/// section is `ALL_VISIBLE`. This lets `Graph::search()` start its top-down
+/// scan at the cached value instead of walking every section from the top.
+struct ColumnData {
+    sections: Box<[u64]>,
+    max_non_air: i32,
+}
+
+/// VisGraph connectivity per column, one entry per section (bottom first).
+/// A missing column or section connects every face.
 struct Columns {
     /// The lowest block y of section 0 (`Level.getMinY`).
     min_y: i32,
     sections: i32,
-    map: HashMap<(i32, i32), Box<[u64]>>,
+    map: HashMap<(i32, i32), ColumnData>,
 }
 
 impl Columns {
@@ -74,14 +86,37 @@ impl Columns {
             None => self
                 .map
                 .entry((key.0, key.2))
-                .or_insert_with(|| vec![ALL_VISIBLE; self.sections as usize].into()),
+                .or_insert_with(|| ColumnData {
+                    sections: vec![ALL_VISIBLE; self.sections as usize].into(),
+                    max_non_air: -1,
+                }),
         };
-        let slot = &mut column[key.1 as usize];
+        let slot = &mut column.sections[key.1 as usize];
         if *slot == vis {
             return false;
         }
         *slot = vis;
-        if vis == ALL_VISIBLE && column.iter().all(|&v| v == ALL_VISIBLE) {
+
+        // Voxelix V03.1: maintain max_non_air incrementally.
+        if vis != ALL_VISIBLE {
+            // A non-AIR section appeared: if it is above the cached maximum,
+            // raise the cache in O(1).
+            if key.1 > column.max_non_air {
+                column.max_non_air = key.1;
+            }
+        } else if key.1 == column.max_non_air {
+            // We removed the highest non-AIR section: rescan downward to find
+            // the next one, or -1 if the column is now all AIR.
+            column.max_non_air = -1;
+            for y in (0..key.1).rev() {
+                if column.sections[y as usize] != ALL_VISIBLE {
+                    column.max_non_air = y;
+                    break;
+                }
+            }
+        }
+
+        if vis == ALL_VISIBLE && column.sections.iter().all(|&v| v == ALL_VISIBLE) {
             self.map.remove(&(key.0, key.2));
         }
         true
@@ -89,7 +124,11 @@ impl Columns {
     fn get(&self, key: SectionKey) -> u64 {
         self.map
             .get(&(key.0, key.2))
-            .and_then(|column| column.get(usize::try_from(key.1).ok()?))
+            .and_then(|column| {
+                column
+                    .sections
+                    .get(usize::try_from(key.1).ok()?)
+            })
             .copied()
             .unwrap_or(ALL_VISIBLE)
     }
@@ -200,14 +239,25 @@ impl Graph {
                     let Some(column) = columns.map.get(&(from.0 + dx, from.2 + dz)) else {
                         continue;
                     };
-                    for (y, &v) in column.iter().enumerate().rev() {
-                        let y = y as i32;
-                        if y <= max_non_air_y {
-                            break;
-                        }
-                        if v != ALL_VISIBLE {
-                            max_non_air_y = y;
-                            break;
+                    // Voxelix V03.1: start at the cached max_non_air instead of
+                    // walking every section from the top. The cache guarantees
+                    // sections[max_non_air] != ALL_VISIBLE when max_non_air >= 0.
+                    if column.max_non_air <= max_non_air_y {
+                        continue;
+                    }
+                    let start = column
+                        .max_non_air
+                        .min((column.sections.len() as i32).saturating_sub(1));
+                    if start >= 0 && column.sections[start as usize] != ALL_VISIBLE {
+                        max_non_air_y = start;
+                    } else {
+                        // Cache is stale (should not happen): fall back to a
+                        // full downward scan of this column.
+                        for y in (0..=start).rev() {
+                            if column.sections[y as usize] != ALL_VISIBLE {
+                                max_non_air_y = max_non_air_y.max(y);
+                                break;
+                            }
                         }
                     }
                 }
@@ -235,8 +285,8 @@ impl Graph {
                 let base = self
                     .index((from.0 + dx, 0, from.2 + dz))
                     .expect("column inside the searched box");
-                let len = (column.len() as i32).min(self.height - 1) as usize;
-                vis[base..base + len].copy_from_slice(&column[..len]);
+                let len = (column.sections.len() as i32).min(self.height - 1) as usize;
+                vis[base..base + len].copy_from_slice(&column.sections[..len]);
             }
         }
         queue.clear();
@@ -583,7 +633,7 @@ impl Occlusion {
         let Some(column) = self.columns.map.remove(&(x, z)) else {
             return;
         };
-        for (y, &vis) in column.iter().enumerate() {
+        for (y, &vis) in column.sections.iter().enumerate() {
             if vis != ALL_VISIBLE {
                 self.changed((x, y as i32, z), ALL_VISIBLE);
             }
@@ -615,7 +665,14 @@ impl Occlusion {
     pub fn update(&mut self, camera: DVec3, radius: i32) {
         let from = self.columns.section_of(camera);
         self.collect(false);
-        self.propagate_changes(camera);
+        // Voxelix V03.3: skip the partial-update BFS when nothing changed.
+        // `propagate_changes()` drains `self.changed`; when it is empty there
+        // is nothing to propagate and the graph stays as the last search left
+        // it. Correctness is unchanged: real changes always push into
+        // `self.changed` via `Occlusion::set()` before `update()` runs.
+        if !self.changed.is_empty() {
+            self.propagate_changes(camera);
+        }
         if self.running.is_none() && (self.dirty || self.searched != Some((from, radius))) {
             self.start(camera, radius);
         }
@@ -1350,5 +1407,131 @@ mod tests {
             !cave.contains((0, 10, 0)),
             "enclosed cave does not see the sky"
         );
+    }
+
+    /// Voxelix V03.3: with no pending changes, `update()` skips the partial
+    /// BFS and the graph is left exactly as the last search produced.
+    #[test]
+    fn propagate_changes_skipped_when_no_changes() {
+        let mut o = Occlusion::new(0, 6);
+        let camera = at((0, 1, 0));
+        o.settle(camera, 3);
+
+        // Reachable set right after the full search.
+        let before: Vec<bool> = o
+            .graph
+            .as_ref()
+            .expect("searched")
+            .directions
+            .iter()
+            .map(|&d| d & REACHED != 0)
+            .collect();
+
+        // Second update with no set() calls in between: changed is empty,
+        // so propagate_changes() must not run.
+        o.update(camera, 3);
+
+        let after: Vec<bool> = o
+            .graph
+            .as_ref()
+            .expect("searched")
+            .directions
+            .iter()
+            .map(|&d| d & REACHED != 0)
+            .collect();
+        assert_eq!(before, after, "graph must not change without updates");
+    }
+
+    /// Voxelix V03.3: when a section changed, `update()` still runs
+    /// propagate_changes() and the new visibility becomes visible.
+    #[test]
+    fn propagate_changes_runs_when_changes_exist() {
+        let mut o = Occlusion::new(0, 6);
+        let camera = at((0, 1, 0));
+
+        // Seal off the neighbour so (2, 1, 0) is hidden after the search.
+        for (dx, dy, dz) in STEPS {
+            o.set((dx, 1 + dy, dz), 0);
+        }
+        o.settle(camera, 3);
+        assert!(!o.contains((2, 1, 0)), "wall blocks the neighbour");
+
+        // Open the wall: this pushes (1, 1, 0) into `changed`.
+        o.set((1, 1, 0), ALL_VISIBLE);
+        o.update(camera, 3);
+
+        // The partial update must open (2, 1, 0) and (3, 1, 0) at once.
+        assert!(o.contains((2, 1, 0)), "opened wall reveals behind it");
+        assert!(o.contains((3, 1, 0)), "and beyond it");
+    }
+
+    /// Voxelix V03.1: max_non_air cache starts at -1 for a fresh column.
+    #[test]
+    fn column_max_non_air_starts_at_minus_one() {
+        let mut columns = Columns::new(0, 6);
+        columns.set((0, 0, 0), 0);
+        let data = columns.map.get(&(0, 0)).expect("column exists");
+        assert_eq!(data.max_non_air, 0);
+    }
+
+    /// Voxelix V03.1: adding a non-AIR section above the current max raises it in O(1).
+    #[test]
+    fn column_max_non_air_rises_on_add() {
+        let mut columns = Columns::new(0, 6);
+        columns.set((0, 3, 0), 0);
+        let data = columns.map.get(&(0, 0)).expect("column exists");
+        assert_eq!(data.max_non_air, 3);
+
+        columns.set((0, 5, 0), 0);
+        let data = columns.map.get(&(0, 0)).expect("column exists");
+        assert_eq!(data.max_non_air, 5);
+
+        // Adding below the current max must not change it.
+        columns.set((0, 1, 0), 0);
+        let data = columns.map.get(&(0, 0)).expect("column exists");
+        assert_eq!(data.max_non_air, 5);
+    }
+
+    /// Voxelix V03.1: removing the top non-AIR section rescans downward to the next one.
+    #[test]
+    fn column_max_non_air_rescans_on_remove_top() {
+        let mut columns = Columns::new(0, 6);
+        columns.set((0, 3, 0), 0);
+        columns.set((0, 5, 0), 0);
+        let data = columns.map.get(&(0, 0)).expect("column exists");
+        assert_eq!(data.max_non_air, 5);
+
+        columns.set((0, 5, 0), ALL_VISIBLE);
+        let data = columns.map.get(&(0, 0)).expect("column still exists");
+        assert_eq!(data.max_non_air, 3);
+    }
+
+    /// Voxelix V03.1: removing all non-AIR sections sets max_non_air to -1
+    /// (or removes the column entirely).
+    #[test]
+    fn column_max_non_air_goes_to_minus_one_when_all_air() {
+        let mut columns = Columns::new(0, 6);
+        columns.set((0, 2, 0), 0);
+        columns.set((0, 2, 0), ALL_VISIBLE);
+        match columns.map.get(&(0, 0)) {
+            Some(d) => assert_eq!(d.max_non_air, -1),
+            None => {} // column removed entirely — also correct
+        }
+    }
+
+    /// Voxelix V03.1: clearing and refilling resets the cache.
+    #[test]
+    fn column_max_non_air_clear_and_refill() {
+        let mut columns = Columns::new(0, 6);
+        columns.set((0, 4, 0), 0);
+        let data = columns.map.get(&(0, 0)).expect("column exists");
+        assert_eq!(data.max_non_air, 4);
+
+        columns.map.clear();
+        assert_eq!(columns.map.len(), 0);
+
+        columns.set((0, 1, 0), 0);
+        let data = columns.map.get(&(0, 0)).expect("column exists");
+        assert_eq!(data.max_non_air, 1);
     }
 }

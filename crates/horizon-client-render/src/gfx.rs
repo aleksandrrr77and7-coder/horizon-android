@@ -253,6 +253,7 @@ mod sunrise_fan;
 mod timing;
 pub mod translucency;
 pub(crate) mod upload;
+mod voxelix;
 mod view;
 mod wgsl_prefix;
 mod world_post;
@@ -1585,6 +1586,41 @@ async fn open_backend(
     // atomics on images: their buffers and images.
     let mobile = cfg!(target_os = "android");
     let compatibility = crate::android_runtime::compatibility();
+    let voxelix = voxelix::VoxelixConfig::from_env();
+
+    // INDIRECT_FIRST_INSTANCE is excluded from the required-features mask on
+    // Android by default. Voxelix V01 (HORIZON_VOXELIX_MULTIDRAW=1) requests it
+    // back only when the adapter itself advertises the feature; otherwise
+    // requesting it in required_features would make device creation fail and
+    // the game would not start. Without the request, the mask stays unchanged
+    // and the old per-section draw_indexed path is used.
+    //
+    // `compatibility` (GPU batching off) does not block V01's request: the
+    // flag is a Voxelix opt-in that overrides it for this single feature only.
+    let indirect_first_instance = if mobile {
+        if voxelix.multi_draw
+            && adapter
+                .features()
+                .contains(wgpu::Features::INDIRECT_FIRST_INSTANCE)
+        {
+            wgpu::Features::INDIRECT_FIRST_INSTANCE
+        } else {
+            if voxelix.multi_draw {
+                log::warn!(
+                    "Voxelix V01: Multi-Draw Indirect requested but \
+                     INDIRECT_FIRST_INSTANCE is not supported by this Android \
+                     adapter; falling back to per-section draw_indexed"
+                );
+            }
+            wgpu::Features::empty()
+        }
+    } else if compatibility {
+        wgpu::Features::empty()
+    } else {
+        wgpu::Features::INDIRECT_FIRST_INSTANCE
+            | wgpu::Features::MAPPABLE_PRIMARY_BUFFERS
+    };
+
     let features = timing::GpuTimer::features(&adapter)
         | if compatibility || mobile {
             wgpu::Features::empty()
@@ -1593,16 +1629,8 @@ async fn open_backend(
         }
         | oit::features(&adapter)
         | (adapter.features()
-            & (if compatibility || mobile {
-                wgpu::Features::empty()
-            } else {
-                wgpu::Features::INDIRECT_FIRST_INSTANCE
-                    | if mobile {
-                        wgpu::Features::empty()
-                    } else {
-                        wgpu::Features::MAPPABLE_PRIMARY_BUFFERS
-                    }
-            } | wgpu::Features::TEXTURE_FORMAT_16BIT_NORM
+            & (indirect_first_instance
+                | wgpu::Features::TEXTURE_FORMAT_16BIT_NORM
                 | wgpu::Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES
                 | wgpu::Features::RG11B10UFLOAT_RENDERABLE
                 | wgpu::Features::SUBGROUP
@@ -3594,7 +3622,8 @@ impl Renderer {
             .get_downlevel_capabilities()
             .flags
             .contains(wgpu::DownlevelFlags::BASE_VERTEX);
-        let multi_draw = !cfg!(target_os = "android")
+        let voxelix = voxelix::VoxelixConfig::from_env();
+        let multi_draw = voxelix.multi_draw
             && device
                 .features()
                 .contains(wgpu::Features::INDIRECT_FIRST_INSTANCE)
@@ -3602,6 +3631,15 @@ impl Renderer {
                 .get_downlevel_capabilities()
                 .flags
                 .contains(wgpu::DownlevelFlags::INDIRECT_EXECUTION);
+        if voxelix.multi_draw && multi_draw {
+            log::info!(
+                "Voxelix V01: Multi-Draw Indirect enabled (INDIRECT_FIRST_INSTANCE + INDIRECT_EXECUTION)"
+            );
+        } else if voxelix.multi_draw && !multi_draw {
+            log::info!(
+                "Voxelix V01: Multi-Draw Indirect requested but unsupported by this GPU/backend; falling back to per-section draw_indexed"
+            );
+        }
         // Without indirect draws (OpenGL before 4.0 without indirect execution, or
         // before 4.2 + GL_ARB_shader_draw_parameters without indirect first instance)
         // even creating an indirect buffer fails; one draw per section reads
