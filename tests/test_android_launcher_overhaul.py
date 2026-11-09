@@ -407,7 +407,7 @@ class LauncherOverhaulTests(unittest.TestCase):
         cull_code = (ROOT / "crates/horizon-client-render/src/gfx/cull.rs").read_text(encoding="utf-8")
         flat_code = (ROOT / "crates/horizon-client-render/src/gfx/flat.rs").read_text(encoding="utf-8")
         budget_code = (ROOT / "crates/horizon-client-render/src/gfx/upload_budget.rs").read_text(encoding="utf-8")
-        self.assertIn("let multi_draw = !cfg!(target_os = \"android\")", gfx_code)
+        self.assertIn("voxelix.multi_draw", gfx_code)
         self.assertIn("if cfg!(target_os = \"android\") {", cull_code)
         self.assertIn("std::env::var(\"HORIZON_FLAT_DRAWS\").as_deref() == Ok(\"1\")", flat_code)
         self.assertIn("crate::android_runtime::gpu_batching()", budget_code)
