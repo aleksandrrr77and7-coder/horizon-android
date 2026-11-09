@@ -34,6 +34,9 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
       - run: git diff --check
       - run: python3 tools/check_public_tree.py --history
       - run: python3 -m unittest discover -s tests -p 'test_android*.py'
@@ -47,6 +50,9 @@ jobs:
         run: |
           cmp .github/workflows/android-source.yml packaging/android/source-checks.yml
           cmp .github/workflows/android-dev.yml packaging/android/dev-builds.yml
+      - name: Lint GitHub Actions workflows with actionlint
+        working-directory: ./tools/actionlint-check
+        run: go run . ../../.github/workflows/android-source.yml ../../.github/workflows/android-dev.yml
   native:
     if: github.event_name == 'workflow_dispatch' && inputs.native_checks
     needs: source

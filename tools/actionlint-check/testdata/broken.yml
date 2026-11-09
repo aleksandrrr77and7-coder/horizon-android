@@ -1,0 +1,11 @@
+name: broken-workflow
+on:
+  push:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo hello
+      - run: >
+        invalid yaml:
+          unclosed: [
