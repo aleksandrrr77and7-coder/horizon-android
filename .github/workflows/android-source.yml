@@ -46,6 +46,11 @@ jobs:
       - run: python3 tools/test_android_session.py
       - run: python3 tools/test_android_hotplug.py
       - run: python3 tools/test_android_appearance.py
+      - uses: actions/setup-rust@v2
+        with:
+          toolchain: '1.95.0'
+      - name: Run Android GPU tests (best-effort, requires GPU adapter)
+        run: python3 tools/test_android_gpu.py || true
       - name: Check workflow export matches the active workflow
         run: |
           cmp .github/workflows/android-source.yml packaging/android/source-checks.yml
@@ -54,7 +59,7 @@ jobs:
         working-directory: ./tools/actionlint-check
         run: go run . ../../.github/workflows/android-source.yml ../../.github/workflows/android-dev.yml
   native:
-    if: github.event_name == 'workflow_dispatch' && inputs.native_checks
+    if: github.event_name == 'workflow_dispatch' && inputs.native_checks || github.event_name == 'push' || github.event_name == 'pull_request'
     needs: source
     runs-on: ubuntu-latest
     timeout-minutes: 90
@@ -89,4 +94,4 @@ jobs:
           "$sdkmanager" --sdk_root="$ANDROID_HOME" "ndk;28.2.13676358" "build-tools;35.0.0"
           rustup target add "${{ matrix.target }}"
       - name: Check Android Rust code without building an APK
-        run: python3 tools/android_build.py --abi "${{ matrix.abi }}" --check --public --sdk "$ANDROID_HOME" --java-home "$JAVA_HOME_17_X64" --ndk-version 28.2.13676358 --build-tools-version 35.0.0
+        run: python3 tools/android_build.py --abi "${{ matrix.abi }}" --check --public --sdk "$ANDROID_HOME" --java-home "$JAVA_HOME" --ndk-version 28.2.13676358 --build-tools-version 35.0.0

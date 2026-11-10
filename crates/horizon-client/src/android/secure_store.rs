@@ -205,7 +205,8 @@ impl SecretStore for AndroidStore {
         let _guard = LOCK.lock().map_err(|_| "Account storage unavailable")?;
         let path = path(key)?;
         let bytes = crypt(secret.as_bytes(), false, key)?;
-        std::fs::create_dir_all(path.parent().unwrap())
+        let parent = path.parent().ok_or("Account storage path has no parent directory")?;
+        std::fs::create_dir_all(parent)
             .map_err(|_| "Cannot create account storage")?;
         let tmp = path.with_extension("tmp");
         let result = (|| -> std::io::Result<()> {
@@ -265,7 +266,11 @@ pub fn development_probe() -> bool {
                 return Err("Probe roundtrip failed".into());
             }
             let mut changed = original.clone();
-            *changed.last_mut().unwrap() ^= 1;
+            if let Some(last) = changed.last_mut() {
+                *last ^= 1;
+            } else {
+                return Err("Probe: empty original cannot be modified".into());
+            }
             std::fs::write(path(key)?, changed).map_err(|_| "Probe write failed")?;
             if store.get(key).is_ok() {
                 return Err("Probe accepted tampering".into());
