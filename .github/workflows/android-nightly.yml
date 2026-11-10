@@ -42,7 +42,7 @@ jobs:
       - run: python3 tools/test_android_session.py
       - run: python3 tools/test_android_hotplug.py
       - run: python3 tools/test_android_appearance.py
-      - uses: actions/setup-rust@v2
+      - uses: dtolnay/rust-toolchain@1
         with:
           toolchain: '1.95.0'
       - name: Run Android GPU tests (best-effort, requires GPU adapter)
