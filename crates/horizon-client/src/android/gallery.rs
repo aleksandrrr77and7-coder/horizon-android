@@ -168,7 +168,7 @@ fn write(request: Request) -> Result<String> {
             if std::time::Instant::now() >= deadline {
                 PERMISSION_PENDING.store(false, Ordering::Relaxed);
                 return Err(
-                    "Allow storage access to export this file; the original remains in Horizon"
+                    "Allow storage access to export this file; the original remains in Voxelix"
                         .into(),
                 );
             }
