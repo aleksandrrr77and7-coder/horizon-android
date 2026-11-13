@@ -143,7 +143,7 @@ fn resolve(home: &Path, id: &str) -> io::Result<Document> {
 fn row(home: &Path, id: &str) -> io::Result<Value> {
     if id == ROOT {
         return Ok(
-            json!({"document_id": ROOT, "_display_name": "Horizon Android",
+            json!({"document_id": ROOT, "_display_name": "Voxelix",
             "mime_type": DIRECTORY, "flags": 0}),
         );
     }
@@ -282,7 +282,7 @@ pub fn call(home: &Path, op: &str, id: &str, arg: &str) -> io::Result<Value> {
     }
     match op {
         "roots" => Ok(json!([{"root_id": ROOT, "document_id": ROOT,
-            "title": "Horizon Android", "flags": 18, "mime_types": "*/*"}])),
+            "title": "Voxelix", "flags": 18, "mime_types": "*/*"}])),
         "document" => Ok(json!([row(home, id)?])),
         "children" => Ok(json!(children(home, id)?)),
         "child" => Ok(json!(is_child(home, id, arg))),
@@ -605,7 +605,7 @@ pub fn validate_entry_name(name: &str) -> Result<(), String> {
         return Err("Name cannot contain slashes or special path characters.".into());
     }
     if is_protected_system_name(trimmed) {
-        return Err("This name is reserved by the Horizon launcher.".into());
+        return Err("This name is reserved by the Voxelix launcher.".into());
     }
     Ok(())
 }

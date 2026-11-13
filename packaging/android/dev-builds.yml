@@ -108,7 +108,7 @@ jobs:
             --sdk "$ANDROID_HOME" --java-home "$JAVA_HOME_17_X64" --gradle "$(command -v gradle)" \
             --ndk-version 28.2.13676358 --build-tools-version 35.0.0 \
             --dev-build "${GITHUB_RUN_NUMBER}.${GITHUB_SHA:0:12}" \
-            --dev-version-code "$((1000 + GITHUB_RUN_NUMBER))"
+            --dev-version-code "$((1014 + GITHUB_RUN_NUMBER))"
       - name: Collect only audited APK and public metadata
         env:
           ABI: ${{ matrix.abi }}

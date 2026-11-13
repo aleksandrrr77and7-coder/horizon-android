@@ -1445,7 +1445,7 @@ fn set_filtering(s: &mut Settings, anisotropy_bit: i32, filtering: i32) {
 /// the startup one, the description, and Vulkan's warning.
 fn graphics_api_tooltip(s: &Settings) -> Text {
     if cfg!(target_os = "android") {
-        return Text::literal("Selected in Horizon Android launcher > Setup.");
+        return Text::literal("Selected in Voxelix launcher > Setup.");
     }
     let line = |key: &str| lang::get_or(key, key);
     let mut lines = Vec::new();

@@ -230,7 +230,7 @@ pub fn export_file(
         ))
     } else {
         Ok(format!(
-            "Ready to export '{file_name}' via system Files > Horizon Android."
+            "Ready to export '{file_name}' via system Files > Voxelix."
         ))
     }
 }

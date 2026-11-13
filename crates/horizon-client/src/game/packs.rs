@@ -45,7 +45,7 @@ pub fn open_folder(dir: &Path) {
             let id =
                 crate::document_store::folder_id(crate::document_store::profile(&home), folder);
             if !crate::platform::open_documents(&id) {
-                log::warn!("Open Files, then choose Horizon Android / {folder}");
+                log::warn!("Open Files, then choose Voxelix / {folder}");
             }
         }
     }
