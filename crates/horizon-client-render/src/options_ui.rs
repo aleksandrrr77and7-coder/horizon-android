@@ -382,7 +382,7 @@ impl Opt {
                 s.volumes[i]
             }),
             Opt::Gamma => Kind::Slider(s.gamma),
-            Opt::MaxFps => unit(s.max_fps as f32, 10.0, 260.0),
+            Opt::MaxFps => Kind::Cycle,
             Opt::CloudRange => unit(s.cloud_range as f32, 2.0, 128.0),
             Opt::EntityDistance => unit(s.entity_distance, 0.5, 5.0),
             Opt::BiomeBlend => unit(s.biome_blend as f32, 0.0, 7.0),
@@ -464,7 +464,7 @@ impl Opt {
             Opt::Fov => Some(80),
             Opt::RenderDistance => Some((crate::options_file::MAX_RENDER_DISTANCE - 2) as u32),
             Opt::SimulationDistance => Some(27),
-            Opt::MaxFps => Some(25),
+            Opt::MaxFps => None,
             Opt::CloudRange => Some(126),
             Opt::EntityDistance => Some(18),
             Opt::BiomeBlend => Some(7),
@@ -1195,6 +1195,15 @@ impl Opt {
             Opt::DiscreteScroll => s.discrete_scroll = !s.discrete_scroll,
             Opt::AllowCursorChanges => s.allow_cursor_changes = !s.allow_cursor_changes,
             Opt::ViewBobbing => s.view_bobbing = !s.view_bobbing,
+            Opt::MaxFps => {
+                const FPS_PRESETS: [u32; 7] = [30, 60, 90, 120, 144, 165, 260];
+                let i = FPS_PRESETS
+                    .iter()
+                    .position(|&v| v == s.max_fps)
+                    .unwrap_or(1);
+                let n = next(i as u8, FPS_PRESETS.len() as u8);
+                s.max_fps = FPS_PRESETS[usize::from(n)];
+            }
             Opt::Vsync => s.vsync = !s.vsync,
             Opt::Fullscreen => s.fullscreen = !s.fullscreen,
             Opt::ExclusiveFullscreen => {
@@ -7615,7 +7624,6 @@ mod tests {
             Opt::Fov,
             Opt::RenderDistance,
             Opt::SimulationDistance,
-            Opt::MaxFps,
             Opt::CloudRange,
             Opt::EntityDistance,
             Opt::BiomeBlend,

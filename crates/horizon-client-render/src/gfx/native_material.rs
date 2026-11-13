@@ -168,6 +168,7 @@ pub struct TerrainShape<'a> {
 
 /// The pack's terrain pipelines: solid (with the cutout test) and translucent, for the
 /// renderer's instanced draws and, where they run, its flat ones.
+#[derive(Clone)]
 pub struct NativeMaterial {
     pub solid: wgpu::RenderPipeline,
     pub translucent: wgpu::RenderPipeline,

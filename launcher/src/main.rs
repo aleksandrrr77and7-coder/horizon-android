@@ -2561,7 +2561,7 @@ impl Launcher {
                 .child(
                     shell::text(theme::night::TITLE, shell::c(n.ink))
                         .font_family(theme::DISPLAY_FONT)
-                        .child("Horizon"),
+                        .child("Voxelix"),
                 )
         });
         shell::sidebar_plate(&t)
@@ -3348,7 +3348,7 @@ impl Launcher {
                     .child(group("AI", "terminal"))
                     .child(self.no_ai_row(n + 6, cx))
                     .child(group("About", "info-box"))
-                    .child(index_row(n + 7, "Horizon", Some(plain(&horizon)), horizon_action, &t))
+                    .child(index_row(n + 7, "Voxelix", Some(plain(&horizon)), horizon_action, &t))
                     .child(index_row(
                         n + 8,
                         tr("Launcher"),

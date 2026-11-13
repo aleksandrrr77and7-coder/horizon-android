@@ -1,14 +1,14 @@
 # The launcher's mod browser
 
 Search Modrinth (CurseForge support is coming soon) for Java mods, modpacks, resource packs and data packs, and Horizon's
-registry for Horizon's own mods, modpacks, resource packs and shader packs; see how well each one runs before installing it, and install it with its checksum checked. This is item 16 of the roadmap and issue #577. The code is in
+registry for Voxelix's own mods, modpacks, resource packs and shader packs; see how well each one runs before installing it, and install it with its checksum checked. This is item 16 of the roadmap and issue #577. The code is in
 `launcher/src/browser.rs` and `launcher/src/browser/`.
 
 ## What it offers
 
 Horizon doesn't run Java code ([mods.md](mods.md)). It ports what a Java mod
 carries as data (blocks, items, recipes, loot tables, tags, worldgen, textures, names) with `horizon-port-pack`, and
-says before install which of the mod's features that leaves out. Horizon's own mods (content mods, `.hmod`, and native
+says before install which of the mod's features that leaves out. Voxelix's own mods (content mods, `.hmod`, and native
 mods, `.hnmod`) aren't on Modrinth or CurseForge yet (Modrinth has no `horizon` loader).
 
 | Kind | Goes to | How well it runs |

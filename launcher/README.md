@@ -1,6 +1,6 @@
-# Horizon launcher
+# Voxelix launcher
 
-A small desktop app that installs Horizon builds, prepares them from your own copy of
+A small desktop app that installs Voxelix builds, prepares them from your own copy of
 Minecraft, and starts the client or a dedicated server. Built with [GPUI Fast](https://github.com/longbridge/gpui-fast),
 a fork of Zed's UI framework [GPUI](https://www.gpui.rs) that draws unchanged views from the last frame;
 it has its own Cargo workspace and is not part of the game's builds.
@@ -39,9 +39,9 @@ The opening, then Play ([clip](docs/opening.webm)):
   starts the game. With no install on the computer the Play page offers the download alone and the
   Minecraft folder row says none is needed. Without an owner,
   the Play page asks to sign in first. `horizon-launcher prepare --download`.
-- **Mods**: **Mods** and **Shader packs** search Horizon's own registry (a Java instance's mods
+- **Mods**: **Mods** and **Shader packs** search Voxelix's own registry (a Java instance's mods
   come from Modrinth), **Resource packs** searches Modrinth, each marked Works, Partly or Doesn't
-  run in Horizon; Modrinth's data packs aren't usable yet and have no tab. Install puts a file in the game folder only after its checksum matches, and a
+  run in Voxelix; Modrinth's data packs aren't usable yet and have no tab. Install puts a file in the game folder only after its checksum matches, and a
   modpack (the sidebar's +) goes to the Modpacks page; installed packs show their source and checksum, with Update,
   **Update all** and Remove ([docs/mod-browser.md](../docs/mod-browser.md)).
 - **Modpacks**: import a Java modpack (a Modrinth `.mrpack`, a CurseForge zip, or a Prism,

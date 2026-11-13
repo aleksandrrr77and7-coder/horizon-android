@@ -257,7 +257,7 @@ Light); `tokens.css` carries them as `--night-*`. The game's menus don't use it.
 - **Home** (`launcher/src/home.rs`): the selected instance's name in the display cut over the bare
   sky, a caption above it naming what it plays and its state (the same square), and when it was
   played below. Play is the main action (`night::PLAY` tall, cut in one step); the version picker
-  is a raised control of the same height; Mods and Folder are quiet buttons. A Horizon instance
+  is a raised control of the same height; Mods and Folder are quiet buttons. A Voxelix instance
   gets a plate on the right: a release's notes in one line (not a Nightly's) and Join a friend.
   While it gets ready, Play names it ("Getting ready… 34%") beside Cancel, and below sit the
   bar, what is happening with the time left, and the steps (game files, Java, sounds, prepare,

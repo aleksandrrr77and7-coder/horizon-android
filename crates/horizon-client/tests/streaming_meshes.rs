@@ -67,7 +67,7 @@ fn columns_loaded_past_the_render_distance_mesh_when_they_come_in_range() {
         assets,
         render: render.clone(),
     });
-    let mut streaming = Streaming::new(Arc::new(Saved), context, 3);
+    let mut streaming = Streaming::new(Arc::new(Saved), context, 3, 128);
     streaming.radius = 4;
     let mut world = World::new(BlockStateId(0), 0);
     let mut meshed = HashSet::new();
@@ -161,7 +161,7 @@ fn relit_columns_keep_every_mesh_current() {
     // Columns from a server, one of them not sent yet. They keep the light
     // the server sent (#824, as vanilla's `enableChunkLight`), so its
     // neighbours are lit too.
-    let mut streaming = Streaming::new(Arc::new(Saved), context.clone(), 3);
+    let mut streaming = Streaming::new(Arc::new(Saved), context.clone(), 3, 128);
     streaming.radius = 4;
     streaming.remote = true;
     let mut world = World::new(BlockStateId(0), 0);

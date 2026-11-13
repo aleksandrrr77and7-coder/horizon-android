@@ -1,4 +1,4 @@
-# Horizon: a map for agents
+# Voxelix: a map for agents
 
 Minecraft: Java Edition 26.3 rewritten in Rust (wgpu). Vanilla is the specification wherever it has the
 feature. Read [CONTRIBUTING.md](CONTRIBUTING.md) once; this page tells you where things are.
@@ -24,7 +24,7 @@ Feature → files → harness for the most-changed areas: [docs/architecture.md]
   `Co-Authored-By: Claude <model> <noreply@anthropic.com>`, last line
   `🤖 Generated with [Claude Code](https://claude.com/claude-code)`.
 - Everything players run is Rust. Python/Java only for dev tools and harness drivers in `tools/`.
-- Horizon-only features follow [docs/design-system.md](docs/design-system.md) and are off by default where
+- Voxelix-only features follow [docs/design-system.md](docs/design-system.md) and are off by default where
   they would change the vanilla look.
 - Small PRs (< ~500 lines). Labels: `feature` (players get something new), `skip-release` (they see no
   change), none for a fix. Agents never add `release-now`: the maintainer decides it. Merges ship in batches of 5, or after

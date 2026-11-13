@@ -1,6 +1,6 @@
 # The dedicated server's anticheat
 
-Horizon's dedicated server checks what players send beyond what vanilla checks. It is **on** by default,
+Voxelix's dedicated server checks what players send beyond what vanilla checks. It is **on** by default,
 every check with it, but only the checks a vanilla client can't trip act on their own: `combat` drops the
 attacks of a kill aura, kicks it, and bans it when it comes back and does it again; `ground` drops the
 false ground claims of a no-fall or a walk on water (never sending the player back), kicks one that keeps at

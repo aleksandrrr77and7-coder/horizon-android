@@ -483,7 +483,7 @@ struct Options {
 /// the in-frame world is unmaintained, gets no fixes and will be removed soon.
 fn warn_in_frame_deprecated(what: &str) {
     eprintln!(
-        "Horizon: DEPRECATED: {what} runs single player's world in the window, a path that is no longer supported, \
+        "Voxelix: DEPRECATED: {what} runs single player's world in the window, a path that is no longer supported, \
          gets no fixes and will be removed soon. Do not use it: single player runs on its server thread by default."
     );
 }
@@ -539,7 +539,7 @@ impl Options {
                 horizon_client::auth::prepare_chat_keys(true);
             }
             Ok(None) => {}
-            Err(e) => eprintln!("Horizon: not signed in: {e}"),
+            Err(e) => eprintln!("Voxelix: not signed in: {e}"),
         }
         if let Some(dir) = o.game_dir.take() {
             // Paths given on the command line stay relative to where the game was started.
@@ -16116,13 +16116,25 @@ impl Game<'_> {
                 let frame_dt = Duration::from_secs_f32((self.frame_ticks / 20.0).max(0.0));
                 let interactive = self.screen != Screen::Playing
                     || self.last_input.elapsed() < Duration::from_millis(120);
-                let mut budget = horizon_client::gfx::upload_budget::UploadBudget::with_frame_state(
+                // Compute camera speed for adaptive upload budget
+                let camera_speed_mps = self
+                    .streaming
+                    .prev_center
+                    .map(|(px, pz)| {
+                        let dx = centre.0 - px;
+                        let dz = centre.1 - pz;
+                        // blocks per second: distance in blocks per tick * 20 ticks/sec
+                        (((dx * dx + dz * dz) as f64).sqrt() * 20.0) as f32
+                    })
+                    .unwrap_or(0.0);
+                let mut budget = horizon_client::gfx::upload_budget::UploadBudget::with_camera_speed(
                     g.chunk_updates as usize,
                     u64::from(g.upload_budget_kib) * 1024,
                     mobile_uploads,
                     renderer.last_wait,
                     frame_dt,
                     interactive,
+                    camera_speed_mps,
                 );
                 let upload_started = Instant::now();
                 let mut uploaded = false;
@@ -18381,6 +18393,13 @@ impl Game<'_> {
             self.handle_window_event(event_loop, WindowId::dummy(), WindowEvent::RedrawRequested);
             return;
         }
+        // Frame-rate limiter: pace frames when the player has set a cap below
+        // 260 FPS (the "unlimited" sentinel). VSync off + a cap means the
+        // limiter paces; VSync on caps via the swapchain.
+        let limit = self.framerate_limit();
+        if limit < 260 {
+            self.limiter.limit_display_fps(limit, &mut self.frame_clock);
+        }
         event_loop.set_control_flow(ControlFlow::Poll);
     }
 }
@@ -18422,6 +18441,7 @@ impl<'a> Game<'a> {
             Arc::new(TestTerrain::new(registry, res.biomes())?),
             pack.context.clone(),
             1,
+            self.settings.horizon.mesh_pool_size,
         );
         streaming.paused = true;
         let level = Level::default();
@@ -20008,6 +20028,7 @@ fn build_renderer(
         previous,
         api,
     ))?;
+    renderer.apply_graphics_settings(&self.settings.horizon);
     renderer.hud.sprite_animations = atlas
         .sprite_animations
         .iter()
@@ -21290,7 +21311,7 @@ pub fn run() -> Result<()> {
     if options.execution_role.is_client() {
         narrator::start(&early_settings);
     }
-    // "Playing Horizon" on Discord: never for a server; an automated run only talks to a test's fake Discord.
+    // "Playing Voxelix" on Discord: never for a server; an automated run only talks to a test's fake Discord.
     if options.dedicated.is_none() {
         let automated = options.benchmark.is_some()
             || options.offscreen

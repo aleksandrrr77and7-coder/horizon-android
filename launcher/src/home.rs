@@ -28,7 +28,7 @@ impl Launcher {
             if tag.is_empty() {
                 "Minecraft"
             } else {
-                "Horizon"
+                "Voxelix"
             },
             |i| i.name.as_str(),
         );
@@ -114,7 +114,7 @@ impl Launcher {
             .children(instance.map(|i| {
                 shell::text(night::UI, c(n.ink_soft)).child(instances_page::played_line(i))
             }));
-        // A Java instance (no Horizon tag) isn't offered Horizon's updates.
+        // A Java instance (no Voxelix tag) isn't offered Voxelix's updates.
         if let Some(release) = self.updates.horizon.as_ref().filter(|_| !tag.is_empty()) {
             let installing = self.installing.as_ref().filter(|(t, _)| *t == release.tag);
             let line = shell::text(night::CAPTION, c(n.muted))
@@ -191,7 +191,7 @@ impl Launcher {
         hero
     }
 
-    /// Play, then what else the instance offers: its version (Horizon), its mods, its folder.
+    /// Play, then what else the instance offers: its version (Voxelix), its mods, its folder.
     /// `ready`: prepared, or a Java instance (its game comes with Play).
     pub(super) fn home_actions(&self, ready: bool, java: bool, cx: &mut Context<Self>) -> Div {
         let t = self.theme;
@@ -261,7 +261,7 @@ impl Launcher {
             .items_center()
             .gap(px(10.))
             .child(play)
-            // Horizon's versions don't apply to a Java instance.
+            // Voxelix's versions don't apply to a Java instance.
             .children((!java).then(|| self.picker(cx)))
             .child(
                 action("home-mods", Action::Quiet, &t)
@@ -281,7 +281,7 @@ impl Launcher {
             }))
     }
 
-    /// The card beside the hero, for a Horizon version: a line from a release's notes, and
+    /// The card beside the hero, for a Voxelix version: a line from a release's notes, and
     /// joining a friend with their invite code.
     pub(super) fn home_card(&self, tag: &str, cx: &mut Context<Self>) -> Div {
         let t = self.theme;

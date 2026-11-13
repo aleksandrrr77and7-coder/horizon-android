@@ -1,6 +1,6 @@
 # Launch API
 
-What another launcher (Prism Launcher, MultiMC, ATLauncher, Modrinth App, HMCL or your own) needs to start Horizon:
+What another launcher (Prism Launcher, MultiMC, ATLauncher, Modrinth App, HMCL or your own) needs to start Voxelix:
 the options `horizon-client` takes, how it hands over an account, and how it ends. `horizon-launcher` is the
 reference implementation. Proposed in horizon-rust/horizon#3545.
 

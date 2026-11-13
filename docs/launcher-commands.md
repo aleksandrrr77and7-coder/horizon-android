@@ -428,7 +428,7 @@ MCP: `instance_rename`.
 
 ## `horizon-launcher instance delete`
 
-Delete an instance: its folder (worlds, options, packs) goes to the Trash, where you can get it back. Horizon's own instance stays.
+Delete an instance: its folder (worlds, options, packs) goes to the Trash, where you can get it back. Voxelix's own instance stays.
 
     horizon-launcher instance delete <INSTANCE>
 

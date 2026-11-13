@@ -1,6 +1,6 @@
-# Contributing to Horizon Android
+# Contributing to Voxelix Android
 
-This is an unofficial Android fork of Horizon. Start with small changes and keep
+This is an unofficial Android fork of Voxelix. Start with small changes and keep
 the upstream attribution and history intact. Read [CONTRIBUTING.md](CONTRIBUTING.md)
 and [AGENTS.md](AGENTS.md) for the engine's rules.
 

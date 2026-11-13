@@ -1,15 +1,15 @@
-# Horizon Android
+# Voxelix Android
 
 > [!IMPORTANT]
-> **Horizon Android is now Starling.**
+> **Voxelix Android is now Starling.**
 >
-> Horizon Android and [Starling](https://github.com/JuanLuci/starling) are merging into one Android port of Horizon, under the **Starling** name, here in this repository. Starling's code is the base, and the best of Horizon Android is being brought over to it.
+> Voxelix Android and [Starling](https://github.com/JuanLuci/starling) are merging into one Android port of Voxelix, under the **Starling** name, here in this repository. Starling's code is the base, and the best of Voxelix Android is being brought over to it.
 >
-> - **0.7.8 is Horizon Android's last stable release.** Starling's releases stay on [JuanLuci/starling](https://github.com/JuanLuci/starling/releases) until the unified release.
+> - **0.7.8 is Voxelix Android's last stable release.** Starling's releases stay on [JuanLuci/starling](https://github.com/JuanLuci/starling/releases) until the unified release.
 > - **New work goes to the [`starling`](https://github.com/starling-client/starling/tree/starling) branch.** This `android` branch takes the pull requests that are already open, then becomes a historical branch at the unified release.
-> - Horizon Android's history, contributors, issues and community stay here.
+> - Voxelix Android's history, contributors, issues and community stay here.
 
-A native Android port of [Horizon](https://github.com/ludovic111/horizon), the
+A native Android port of [Voxelix](https://github.com/ludovic111/horizon), the
 Rust engine for Minecraft Java 26.3. Unofficial and in active development.
 
 **Android 9+ · Vulkan · Four touch schemes · Sandboxed `.hmod` mods**
@@ -64,7 +64,7 @@ Fujitsu F-03L · Portrait mode
 
 | **Main menu** | **In-game** |
 | --- | --- |
-| <img src="docs/media/android/fujitsu-f03l-menu.png" alt="Horizon main menu on a Fujitsu F-03L flip phone in portrait mode" width="220"> | <img src="docs/media/android/fujitsu-f03l-gameplay.png" alt="Minecraft world running on a Fujitsu F-03L flip phone in portrait mode" width="220"> |
+| <img src="docs/media/android/fujitsu-f03l-menu.png" alt="Voxelix main menu on a Fujitsu F-03L flip phone in portrait mode" width="220"> | <img src="docs/media/android/fujitsu-f03l-gameplay.png" alt="Minecraft world running on a Fujitsu F-03L flip phone in portrait mode" width="220"> |
 
 ## Help build it
 
@@ -80,7 +80,7 @@ contributors can find it.
 
 [Build instructions](docs/android.md#build-developers-only) explain the SDK/NDK
 setup and preparation for building the engine. The Android distribution APK
-contains generated Horizon tables; it downloads original Minecraft resources and
+contains generated Voxelix tables; it downloads original Minecraft resources and
 sound from Mojang and the touch textures from Mojang's official sample repository.
 No PC resource preparation is needed to install and play on the phone.
 [Publication notes](docs/android-publication.md).
@@ -90,7 +90,7 @@ records reviewed merges. Original deployment workflows remain disabled in this f
 
 Original copyright and third-party notices are retained in [LICENSE](LICENSE)
 and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Mojang textures are not
-licensed under Horizon's MIT license. Game files, prepared resources, accounts,
+licensed under Voxelix's MIT license. Game files, prepared resources, accounts,
 APKs and signing keys stay outside Git. This project is not affiliated with or
 endorsed by Mojang or Microsoft.
 
@@ -102,7 +102,7 @@ CI badges and parity claims describe upstream Horizon, not validation of this
 Android fork.
 
 <p align="center">
-  <img src="docs/media/banner.webp" alt="The Horizon website: the game you know, rebuilt in Rust" width="100%">
+  <img src="docs/media/banner.webp" alt="The Voxelix website: the game you know, rebuilt in Rust" width="100%">
 </p>
 
 <p align="center">
@@ -125,15 +125,15 @@ Android fork.
   <a href="#contributing"><b>Contributing</b></a>
 </p>
 
-# Horizon
+# Voxelix
 
 Minecraft: Java Edition 26.3, rewritten in Rust. Same worlds, same rules, same terrain, checked against the Java game by more than 300 differential harnesses. Free, open source and unofficial.
 
-> Not an official Minecraft product, nor approved by or associated with Mojang or Microsoft. Horizon contains no Minecraft code, assets or data: you need your own copy of Java Edition 26.3.
+> Not an official Minecraft product, nor approved by or associated with Mojang or Microsoft. Voxelix contains no Minecraft code, assets or data: you need your own copy of Java Edition 26.3.
 
 ## Download
 
-Get **the Horizon launcher** from [playhorizon.dev](https://playhorizon.dev) or [the launcher releases](https://github.com/horizon-rust/horizon/releases?q=launcher-v&expanded=true) (Linux x86-64, macOS on Apple Silicon, macOS on Intel from the next Nightly, Windows x64). It installs and updates the game, prepares its files from your copy of Minecraft, and updates itself.
+Get **the Voxelix launcher** from [playhorizon.dev](https://playhorizon.dev) or [the launcher releases](https://github.com/horizon-rust/horizon/releases?q=launcher-v&expanded=true) (Linux x86-64, macOS on Apple Silicon, macOS on Intel from the next Nightly, Windows x64). It installs and updates the game, prepares its files from your copy of Minecraft, and updates itself.
 
 **You need** a Microsoft account that owns Java Edition ([why](docs/microsoft-account.md)) and a GPU with Vulkan or OpenGL 3.3 (Linux), Vulkan or DirectX 12 (Windows), or a Mac (Apple Silicon, or Intel from the next Nightly). An existing Minecraft install (official launcher, Prism, MultiMC...) is reused; without one, Play downloads 26.3 from Mojang for your account. Step by step: [Install and first launch](https://playhorizon.dev/docs/install).
 
@@ -160,7 +160,7 @@ In the Rust client, with vanilla assets and no mods or shaders:
   </tr>
   <tr>
     <td width="50%"><img src="docs/media/survival.webp" alt="Survival at dusk: a zombie walks up, with the hotbar, health, hunger and experience"></td>
-    <td width="50%"><img src="docs/media/settings.webp" alt="Vanilla's Video Settings screen with Horizon's own buttons at the top: Horizon Graphics and Advanced Graphics"></td>
+    <td width="50%"><img src="docs/media/settings.webp" alt="Vanilla's Video Settings screen with Voxelix's own buttons at the top: Voxelix Graphics and Advanced Graphics"></td>
   </tr>
   <tr>
     <td width="50%"><img src="docs/media/village.webp" alt="A plains village among savanna hills, with farms, villagers and an iron golem"></td>
@@ -174,11 +174,11 @@ The launcher's **Servers** page creates, starts, backs up and updates a server, 
 
 ## Modpacks
 
-The launcher imports Modrinth and CurseForge packs and plays the mods Horizon can carry over: today, content mods made of data and assets, not Java code. [Modpacks](https://playhorizon.dev/docs/modpacks).
+The launcher imports Modrinth and CurseForge packs and plays the mods Voxelix can carry over: today, content mods made of data and assets, not Java code. [Modpacks](https://playhorizon.dev/docs/modpacks).
 
 ## Agent control
 
-AI agents and scripts can play Horizon. `horizon-ctl`, shipped with the game, reads its state as JSON and acts like a player; `horizon-ctl mcp` serves the same commands over MCP.
+AI agents and scripts can play Voxelix. `horizon-ctl`, shipped with the game, reads its state as JSON and acts like a player; `horizon-ctl mcp` serves the same commands over MCP.
 
 ```sh
 horizon-ctl launch --world Survival --seed 5 --wait   # finds the version the launcher installed
@@ -195,7 +195,7 @@ Commands block until done and reply with the result; `horizon-ctl help` lists th
 
 Needs Rust 1.90+, Python 3.10+, JDK 25, and on Linux `libasound2-dev libudev-dev`. `horizon-prepare` builds the game's resources from **your own copy** of Java Edition 26.3 (checked against `research-lock.json`) and never downloads it:
 
-1. **Client:** play 26.3 once in the official launcher. Horizon reads `~/.minecraft` (or `--minecraft-dir` / `HORIZON_MINECRAFT_DIR`).
+1. **Client:** play 26.3 once in the official launcher. Voxelix reads `~/.minecraft` (or `--minecraft-dir` / `HORIZON_MINECRAFT_DIR`).
 2. **Server jar:** the 26.3 server jar (`downloads.server.url` in `versions/26.3/26.3.json`), passed once with `--server-jar` or `HORIZON_SERVER_JAR`.
 
 ```sh

@@ -287,15 +287,26 @@ struct Shared {
     /// The workers that started.
     workers: AtomicUsize,
 }
-#[derive(Default)]
 struct MeshPool {
     meshes: Vec<SectionMesh>,
     bytes: usize,
+    count: usize,
+}
+impl Default for MeshPool {
+    fn default() -> Self {
+        Self::new(if cfg!(target_os = "android") { 64 } else { 128 })
+    }
 }
 impl MeshPool {
     #[cfg(test)]
     const BYTES: usize = 16 << 20;
-    const COUNT: usize = 128;
+    fn new(count: usize) -> Self {
+        Self {
+            meshes: Vec::new(),
+            bytes: 0,
+            count,
+        }
+    }
     fn take(&mut self) -> SectionMesh {
         let mesh = self.meshes.pop().unwrap_or_default();
         self.bytes -= mesh.capacity_bytes();
@@ -309,7 +320,7 @@ impl MeshPool {
         #[cfg(not(target_os = "android"))]
         let budget: usize = 16 << 20;
         if bytes == 0
-            || self.meshes.len() == Self::COUNT
+            || self.meshes.len() == self.count
             || bytes > budget.saturating_sub(self.bytes)
         {
             return Some(mesh);
@@ -472,6 +483,9 @@ pub struct Streaming {
     /// The columns and the next row the band's decoration ranks were given
     /// for (`set_band`).
     band_ranked: Option<(i32, i32, i32)>,
+    /// Camera section from the previous frame, used to compute movement
+    /// direction for predictive section loading ahead of the player.
+    prev_center: Option<(i32, i32)>,
 }
 /// Snapshot only after a scan found no missing candidates. Public range fields
 /// and `World::chunks` can change without going through Streaming, so compare
@@ -626,6 +640,7 @@ impl Streaming {
         generator: Arc<G>,
         context: Arc<WorkerContext>,
         threads: usize,
+        mesh_pool_size: usize,
     ) -> Self {
         let shared = Arc::new(Shared {
             queue: Mutex::new(BinaryHeap::new()),
@@ -633,7 +648,7 @@ impl Streaming {
             stop: AtomicBool::new(false),
             context: RwLock::new(context.clone()),
             done: Mailbox::default(),
-            meshes: Mutex::new(MeshPool::default()),
+            meshes: Mutex::new(MeshPool::new(mesh_pool_size)),
             released: AtomicUsize::new(0),
             workers: AtomicUsize::new(0),
         });
@@ -896,6 +911,7 @@ impl Streaming {
             mesh: true,
             band: None,
             band_ranked: None,
+            prev_center: None,
         }
     }
     /// Shares generation resources, but gives distant work its own worker state.
@@ -983,7 +999,35 @@ impl Streaming {
     /// column (a save, meshes to free) goes ahead of every other.
     fn submit(&mut self, at: Option<(i32, i32)>, bias: i64, job: Job) {
         self.order += 1;
-        let priority = at.map_or(i64::MIN, |(x, z)| self.distance(x, z) * 4 + bias);
+        let mut priority = at.map_or(i64::MIN, |(x, z)| self.distance(x, z) * 4 + bias);
+        // Voxelix V03.1: Predictive chunk loading — bias section draws in the
+        // direction of camera movement so sections ahead of the player are
+        // queued first while flying (elytra). Without previous position (first
+        // frame or camera standing still) the priority is unchanged.
+        if let (Some((cx, cz)), Some((px, pz))) = (at, self.prev_center) {
+            // Camera movement direction from the previous frame to this one.
+            let cam_dx = self.center.0 - px;
+            let cam_dz = self.center.1 - pz;
+            if cam_dx != 0 || cam_dz != 0 {
+                // Direction the camera is travelling in (-1, 0, or 1 per axis).
+                let dir_x = cam_dx.signum();
+                let dir_z = cam_dz.signum();
+                // Alignment of the queued column with the movement direction:
+                // positive when the column is ahead of the camera along travel.
+                let alignment = (cx - self.center.0) * dir_x + (cz - self.center.1) * dir_z;
+                if alignment > 0 {
+                    // Lower priority value = higher priority in BinaryHeap.
+                    let mut boost = alignment as i64;
+                    // Speed multiplier: faster movement = more aggressive
+                    // prefetching ahead. Squared camera travel this frame.
+                    let speed_factor = (((cam_dx * cam_dx + cam_dz * cam_dz) as f64).sqrt()).min(4.0);
+                    boost = (boost as f64 * speed_factor).round() as i64;
+                    // Cap the boost to avoid starving other sections.
+                    boost = i64::min(boost, 50);
+                    priority = priority.saturating_sub(boost);
+                }
+            }
+        }
         self.shared.queue.lock().unwrap().push(Queued {
             priority,
             at,
@@ -1749,6 +1793,8 @@ impl Streaming {
                 );
             }
         }
+        // Remember the camera section for predictive section loading next frame.
+        self.prev_center = Some(self.center);
         (uploads, removed)
     }
     fn schedule_generation(&mut self, world: &World, workers: usize) {
@@ -2431,7 +2477,8 @@ mod tests {
     #[test]
     fn mesh_pool_caps_retained_count_and_bytes() {
         let mut pool = MeshPool::default();
-        for _ in 0..MeshPool::COUNT {
+        let n = pool.count;
+        for _ in 0..n {
             let mut mesh = SectionMesh::default();
             mesh.solid.reserve_exact(1);
             assert!(pool.put(mesh).is_none());
@@ -2439,7 +2486,7 @@ mod tests {
         let mut extra = SectionMesh::default();
         extra.solid.reserve_exact(1);
         assert!(pool.put(extra).is_some());
-        for _ in 0..MeshPool::COUNT {
+        for _ in 0..n {
             pool.take();
         }
         assert_eq!(pool.bytes, 0);

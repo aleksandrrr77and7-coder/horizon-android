@@ -94,7 +94,7 @@ fn forced_chunks_reach_vanillas_rings() {
         assets,
         render: render.clone(),
     });
-    let mut streaming = Streaming::new(Arc::new(Plain), context, 2);
+    let mut streaming = Streaming::new(Arc::new(Plain), context, 2, 128);
     // The player stands far away: only the forced chunk's own rings are
     // generated.
     streaming.center = (0, 0);

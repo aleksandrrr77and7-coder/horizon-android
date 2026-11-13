@@ -1141,7 +1141,7 @@ impl Launcher {
         self.targets.push((eq_btn_rect, Action::OpenControlEditor));
 
         let brand_w = (eq_btn_rect[0] - 66.0).max(70.0);
-        ui.text(Face::SemiBold, 16.0, 54.0, 10.0, my3_text(), "Horizon");
+        ui.text(Face::SemiBold, 16.0, 54.0, 10.0, my3_text(), "Voxelix");
         let version_line = format!("Android {}", crate::backend::VERSION);
         let fitted_version = ui.fit_text(Face::Regular, 11.0, &version_line, brand_w);
         ui.text(
@@ -5571,10 +5571,13 @@ impl Launcher {
             Some(Action::CycleMaxFps) => {
                 self.modify_game_settings(|s| {
                     s.max_fps = match s.max_fps {
-                        0..=45 => 60,
-                        46..=75 => 90,
-                        76..=105 => 120,
-                        106..=200 => 260,
+                        0..=44 => 30,
+                        45..=74 => 60,
+                        75..=104 => 90,
+                        105..=132 => 120,
+                        133..=154 => 144,
+                        155..=200 => 165,
+                        201..=259 => 260,
                         _ => 30,
                     };
                 });

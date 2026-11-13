@@ -148,11 +148,11 @@ impl Arena {
         }
         let page_limit = (bytes / stride) / GRAIN * GRAIN;
         let growth_limit = if cfg!(all(target_os = "android", target_pointer_width = "64")) {
-            ((32 * 1024 * 1024 / stride) / GRAIN * GRAIN)
+            ((128 * 1024 * 1024 / stride) / GRAIN * GRAIN)
                 .max(GRAIN)
                 .min(page_limit)
         } else if cfg!(target_os = "android") {
-            ((8 * 1024 * 1024 / stride) / GRAIN * GRAIN)
+            ((32 * 1024 * 1024 / stride) / GRAIN * GRAIN)
                 .max(GRAIN)
                 .min(page_limit)
         } else {
@@ -509,10 +509,11 @@ fn try_create(device: &wgpu::Device, size: u64, usage: wgpu::BufferUsages) -> Op
             mapped_at_creation: false,
         })
     });
-    // Native error scopes resolve at once.
-    crate::spans::time("arena_error_scope", || pollster::block_on(scope.pop()))
-        .is_none()
-        .then_some(buffer)
+    // Do not block the render thread waiting for the error scope result.
+    // Mobile drivers resolve OOM scopes quickly; if a buffer was returned,
+    // assume it is valid and let device errors surface later via device.lost().
+    drop(scope);
+    Some(buffer)
 }
 
 #[cfg(test)]

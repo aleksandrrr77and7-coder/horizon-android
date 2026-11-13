@@ -713,6 +713,7 @@ pub(super) fn make_streaming(
             }),
             pack.context.clone(),
             worker_threads,
+            settings.horizon.mesh_pool_size,
         )
     } else if let Some(inner) = flat_vanilla {
         inner.search_rings_behind();
@@ -736,6 +737,7 @@ pub(super) fn make_streaming(
             }),
             pack.context.clone(),
             worker_threads,
+            settings.horizon.mesh_pool_size,
         )
     } else if let Some(inner) = flat {
         Streaming::new(
@@ -747,6 +749,7 @@ pub(super) fn make_streaming(
             }),
             pack.context.clone(),
             worker_threads,
+            settings.horizon.mesh_pool_size,
         )
     } else if options.test_terrain && dim == Dim::Overworld {
         let inner = Arc::new(TestTerrain::new(pack.assets.registry, res.biomes())?);
@@ -759,6 +762,7 @@ pub(super) fn make_streaming(
             }),
             pack.context.clone(),
             worker_threads,
+            settings.horizon.mesh_pool_size,
         )
     } else {
         // WorldOptions.generateStructures, from the world's settings.
@@ -806,6 +810,7 @@ pub(super) fn make_streaming(
             }),
             pack.context.clone(),
             worker_threads,
+            settings.horizon.mesh_pool_size,
         )
     };
     streaming.forced = save.load_forced_chunks();

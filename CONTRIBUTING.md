@@ -1,6 +1,6 @@
-# Contributing to Horizon
+# Contributing to Voxelix
 
-Thanks for helping. Horizon is Minecraft: Java Edition 26.3 rewritten in Rust, and the one rule that shapes
+Thanks for helping. Voxelix is Minecraft: Java Edition 26.3 rewritten in Rust, and the one rule that shapes
 everything is that **it plays exactly like vanilla**. This page is the short version of how we work; questions are
 welcome on [Discord](https://discord.gg/playhorizon).
 
@@ -15,7 +15,7 @@ queue (the hub, or `/suggest` on Discord) rather than to issues, which are for b
 ## Build it
 
 You need Rust (stable), Python 3.10+, JDK 25, and on Linux the ALSA and udev headers (`libasound2-dev libudev-dev`).
-Horizon never downloads the game: it prepares its resources from your own copy of Minecraft 26.3, as described in
+Voxelix never downloads the game: it prepares its resources from your own copy of Minecraft 26.3, as described in
 [Build from source](README.md#build-from-source).
 
 ```sh
@@ -28,16 +28,16 @@ The launcher is its own Cargo workspace in `launcher/` (`cd launcher && cargo ru
 ## Vanilla first
 
 Wherever vanilla has a feature, vanilla is the specification, down to the order of random calls. "Parity" here
-means Horizon gives the same results as the pinned 26.3 client and server for the same inputs, checked by a
+means Voxelix gives the same results as the pinned 26.3 client and server for the same inputs, checked by a
 **harness**: a `tools/test_*_parity.py` script that runs a small Java oracle against the real game and a Rust
 probe against Horizon, and compares their outputs. There are about 290 of them.
 
-- **Read the vanilla code before writing Horizon's.** `tools/rea_vanilla.py` queries the pinned game bytecode:
+- **Read the vanilla code before writing Voxelix's.** `tools/rea_vanilla.py` queries the pinned game bytecode:
   `python3 tools/rea_vanilla.py method net.minecraft.world.level.block.DispenserBlock dispenseFrom`.
   Say in your pull request which vanilla classes and methods you followed.
 - **Gameplay changes come with a harness**, new or extended, so the next change can't silently break them.
   [The parity workflow](docs/parity-workflow.md) shows how harnesses run; copy a nearby one.
-- **Horizon's own features** (the launcher, the new menus) follow [the design system](docs/design-system.md) and are
+- **Voxelix's own features** (the launcher, the new menus) follow [the design system](docs/design-system.md) and are
   off by default wherever they would change the vanilla look.
 - **Everything players run is Rust.** Python and Java are fine for dev tools and harness drivers in `tools/`, never
   for player-facing code.

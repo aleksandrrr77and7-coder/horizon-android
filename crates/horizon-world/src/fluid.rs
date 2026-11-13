@@ -9,7 +9,9 @@ use std::io;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u8)]
+#[derive(Default)]
 pub enum FluidKind {
+    #[default]
     Empty,
     FlowingWater,
     Water,
@@ -55,6 +57,7 @@ impl FluidKind {
     }
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Default)]
 pub struct FluidState {
     kind: FluidKind,
     amount: u8,

@@ -23,7 +23,7 @@ const INFO_PLIST: &str = r#"<?xml version="1.0" encoding="UTF-8"?>
 <plist version="1.0">
 <dict>
 	<key>CFBundleDisplayName</key>
-	<string>Horizon</string>
+	<string>Voxelix</string>
 	<key>CFBundleExecutable</key>
 	<string>horizon-client</string>
 	<key>CFBundleIconFile</key>
@@ -33,7 +33,7 @@ const INFO_PLIST: &str = r#"<?xml version="1.0" encoding="UTF-8"?>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>Horizon</string>
+	<string>Voxelix</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>LSApplicationCategoryType</key>

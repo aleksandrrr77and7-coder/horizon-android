@@ -79,6 +79,9 @@ winit = { path = "third_party/winit" }
 wgpu-hal = { path = "third_party/wgpu-hal" }
 # naga 30.0.1, with the fixes to its GLSL frontend that shader packs need (THIRD_PARTY_NOTICES.md).
 naga = { path = "third_party/naga" }
+# Patch android-activity to enable native-activity feature by default,
+# fixing feature unification with winit on Android targets.
+android-activity = { path = ".cargo-patch/android-activity" }
 
 # Line tables keep file:line in backtraces; full debug info made every
 # example and test binary hundreds of megabytes and slow to link.

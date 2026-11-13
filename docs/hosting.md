@@ -17,7 +17,7 @@ plan are in [docs/server.md](https://github.com/horizon-rust/horizon/blob/main/d
   `horizon-server whitelist add` always writes the offline UUID, the one the player joins with, also while
   the server runs (it writes the entry and the game reloads the list): the console's own `whitelist add`
   takes the account's UUID when someone owns that name, as vanilla does, and that player is then refused.
-- **Horizon's own client can't sign in to a Microsoft account yet.** That needs an Azure app registration and
+- **Voxelix's own client can't sign in to a Microsoft account yet.** That needs an Azure app registration and
   Mojang's approval, which the project doesn't have
   ([docs/microsoft-account.md](https://github.com/horizon-rust/horizon/blob/main/docs/microsoft-account.md)).
   Until then Horizon players can join offline servers only (`online_mode = false`). An offline server never
@@ -226,7 +226,7 @@ keep vanilla's names and formats, so going back to vanilla works too.
 ### Behind a Velocity proxy
 
 A network can put one Velocity proxy in front of several servers: the proxy signs the players in with their
-Microsoft accounts, and the servers behind it trust what it forwards. To run Horizon as one of them:
+Microsoft accounts, and the servers behind it trust what it forwards. To run Voxelix as one of them:
 
 1. Set `online_mode = false` in `server.toml` and keep the server's port reachable only from the proxy (bind it
    to `127.0.0.1` or put it on a private network).

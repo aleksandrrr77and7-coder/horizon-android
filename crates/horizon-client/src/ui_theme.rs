@@ -2070,7 +2070,7 @@ fn wordmark(atlas: &HudAtlas, batch: &mut HudBatch) {
         accent,
     );
 
-    ui.text_centered(Face::SemiBold, size, cx, top, BOOT_TEXT, "Horizon");
+    ui.text_centered(Face::SemiBold, size, cx, top, BOOT_TEXT, "Voxelix");
     let sub_y = top + size * 1.45 + small * 0.6;
     ui.text_centered(
         Face::Mono,

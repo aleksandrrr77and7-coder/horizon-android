@@ -1,4 +1,4 @@
-# Horizon documentation
+# Voxelix documentation
 
 To play, use [the launcher](../launcher/README.md); the project site is [playhorizon.dev](https://playhorizon.dev). These pages are for developers. What is being done now and next, the work board and how to help: [the hub](https://playhorizon.dev/hub) ([ROADMAP.md](../ROADMAP.md), [roadmap/README.md](../roadmap/README.md) for keeping it current).
 
@@ -11,26 +11,26 @@ To play, use [the launcher](../launcher/README.md); the project site is [playhor
 - [The anticheat](anticheat.md): the dedicated server's own checks, off unless `server.toml`'s `[anticheat]` turns them on: violation levels, setback, alerts, kicks, the log, and how to write a check.
 - [The chat filter](chat-filter.md): the dedicated server refuses hate slurs in chat, message commands, signs, anvil names and book titles: the list and its normalising, mutes, temporary bans, `[chat_filter]`.
 - [Hosting a server: design](server.md): `horizon-server`, the design and the plan: install, `server.toml`, the CLI, the web panel, backups, services, Docker, and the bot benchmark against vanilla.
-- [The next server: design](server-next.md): Horizon's dedicated server against vanilla and Pumpkin (measured), the targets, parallel ticking that keeps vanilla's order, the network front, the Horizon fast path, the plugin API and the plan.
-- [Survival multiplayer](smp.md): the official server's `smp` native mod (economy, market, trades, games of chance, spawn, homes, teleport requests, warps, land claims) and the server hook points it needs; not part of Horizon's own server.
+- [The next server: design](server-next.md): Voxelix's dedicated server against vanilla and Pumpkin (measured), the targets, parallel ticking that keeps vanilla's order, the network front, the Voxelix fast path, the plugin API and the plan.
+- [Survival multiplayer](smp.md): the official server's `smp` native mod (economy, market, trades, games of chance, spawn, homes, teleport requests, warps, land claims) and the server hook points it needs; not part of Voxelix's own server.
 - [For server owners](owners.md): every `server.properties` key next to its `server.toml` field.
 - [Agent control](agent-control.md): what AI agents can drive in the launcher and the game, and the design of the control socket, `horizon-ctl` and MCP.
 - [Graphics](graphics.md): the Simple and Advanced graphics settings, the graphics benchmark and what it measured.
-- [Server against Pumpkin](performance/server-vs-pumpkin.md): Horizon's server and Pumpkin (Rust) under the same bots at 0, 20, 60 and 100 players: tick time, CPU, memory, chunks, join; where Horizon loses, and how to run it again.
-- [Benchmark](benchmark.md): Horizon against vanilla 26.3 and vanilla with performance mods, on the same machine, world, path and settings: what is measured, how it is kept fair, how to reproduce it.
+- [Server against Pumpkin](performance/server-vs-pumpkin.md): Voxelix's server and Pumpkin (Rust) under the same bots at 0, 20, 60 and 100 players: tick time, CPU, memory, chunks, join; where Voxelix loses, and how to run it again.
+- [Benchmark](benchmark.md): Voxelix against vanilla 26.3 and vanilla with performance mods, on the same machine, world, path and settings: what is measured, how it is kept fair, how to reproduce it.
 - [Extras](extras.md): optional zoom, minimap, FPS and keystroke overlays and auto-reconnect, all off by default.
 - [Narrator](narrator.md): vanilla's text-to-speech (Ctrl+B): the voices per platform, how screens record what they narrate, `horizon-ctl narration`, and where it still differs from vanilla.
-- [Shader packs](shaders.md): Horizon's own WGSL shader packs, how to make and check one (`horizon-shader`).
+- [Shader packs](shaders.md): Voxelix's own WGSL shader packs, how to make and check one (`horizon-shader`).
 - [Mods](mods.md): content mods (data) and native mods (Rust), how to make, install and publish them. [Native mods](native-mods.md): how the launcher builds them. [Native hook points modelled on NeoForge](native-hooks-neoforge.md): the proposal for new hooks.
 - [Upgrading a 26.2 data pack](datapack-upgrade.md): `horizon-port-pack upgrade-datapack` rewrites a 26.2 worldgen pack in 26.3's formats, and how the rewrite is checked against vanilla.
 - [Modpacks](modpacks.md): porting whole packs (ATM10 and smaller): import, inventory, carry-over, an agent per mod with a harness against the Java original, coverage, and how "10x" is measured.
 - [Launcher](../launcher/README.md): installs, updates and starts builds; its CLI and MCP server; releasing it.
 - [Versioning](versioning.md): how releases are numbered from 0.2 (`v0.2.x`, `launcher@0.2.x`), how installs from before 0.2 get there, and the steps for the day 0.2 ships.
-- [Resource packs](resource-packs.md): everything a 26.3 resource pack can change, whether Horizon honours it, and the proof.
+- [Resource packs](resource-packs.md): everything a 26.3 resource pack can change, whether Voxelix honours it, and the proof.
 - [Opt-in data collection](telemetry.md): the consent, exactly what is sent, how it is stored and sent.
 - [Benchmark report format](benchmark-report.md): the versioned JSON every benchmark writes (game, launcher, `tools/perf_bench.py`), the local log and, with consent, the upload.
-- [Horizon APIs](api/README.md): every surface other programs build on (mods, shaders, agent control, servers, the launcher, data formats), each with its guide, generated reference, stability and changelog, and the [stability and versioning policy](api/stability.md).
-- Menus: every screen is vanilla's (title, world list, create world, multiplayer, options, pause). Horizon's own settings hang off vanilla's Options the way mods add theirs: **Horizon Settings...** and **Mods...** in the last two slots of the Options grid (Horizon Settings opens Graphics, Advanced Graphics, Controller Settings, Extras and Mods, each a vanilla options list), with Horizon Graphics and Advanced Graphics also at the top of Video Settings and Controller Settings at the bottom of Controls. The title screen's and pause menu's Friends buttons open Join a Friend and Play with Friends ([play-with-friends.md](play-with-friends.md)).
+- [Voxelix APIs](api/README.md): every surface other programs build on (mods, shaders, agent control, servers, the launcher, data formats), each with its guide, generated reference, stability and changelog, and the [stability and versioning policy](api/stability.md).
+- Menus: every screen is vanilla's (title, world list, create world, multiplayer, options, pause). Voxelix's own settings hang off vanilla's Options the way mods add theirs: **Voxelix Settings...** and **Mods...** in the last two slots of the Options grid (Voxelix Settings opens Graphics, Advanced Graphics, Controller Settings, Extras and Mods, each a vanilla options list), with Voxelix Graphics and Advanced Graphics also at the top of Video Settings and Controller Settings at the bottom of Controls. The title screen's and pause menu's Friends buttons open Join a Friend and Play with Friends ([play-with-friends.md](play-with-friends.md)).
 
 ## Parity
 

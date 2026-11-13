@@ -45,6 +45,56 @@ pub enum Preset {
     #[default]
     Custom,
 }
+
+/// Android performance profile: presets the block-engine and renderer settings
+/// for a target device class. `Custom` leaves every option as the player set it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+pub enum AndroidProfile {
+    /// Balanced defaults: good FPS without sacrificing visual quality.
+    #[default]
+    Balanced,
+    /// Maximum FPS: lower render distance, aggressive culling, smaller mesh pool.
+    Performance,
+    /// Low Memory: minimal mesh pool, smaller arena growth, fewer occlusion tests.
+    LowMemory,
+    /// Battery Friendly: frame cap, fewer worker threads, reduced render distance.
+    BatteryFriendly,
+    /// Custom: every option is the player's own choice.
+    Custom,
+}
+impl AndroidProfile {
+    pub const ALL: [AndroidProfile; 5] = [
+        AndroidProfile::Balanced,
+        AndroidProfile::Performance,
+        AndroidProfile::LowMemory,
+        AndroidProfile::BatteryFriendly,
+        AndroidProfile::Custom,
+    ];
+    pub fn name(self) -> &'static str {
+        match self {
+            AndroidProfile::Balanced => "balanced",
+            AndroidProfile::Performance => "performance",
+            AndroidProfile::LowMemory => "lowMemory",
+            AndroidProfile::BatteryFriendly => "batteryFriendly",
+            AndroidProfile::Custom => "custom",
+        }
+    }
+    pub fn label(self) -> &'static str {
+        match self {
+            AndroidProfile::Balanced => "Balanced",
+            AndroidProfile::Performance => "Performance",
+            AndroidProfile::LowMemory => "Low Memory",
+            AndroidProfile::BatteryFriendly => "Battery Friendly",
+            AndroidProfile::Custom => "Custom",
+        }
+    }
+    fn parse(s: &str) -> Self {
+        Self::ALL
+            .into_iter()
+            .find(|p| p.name() == s)
+            .unwrap_or_default()
+    }
+}
 impl Preset {
     pub const ALL: [Preset; 5] = [
         Preset::Performance,
@@ -413,6 +463,28 @@ pub struct Graphics {
     /// pack uniforms still match. Off by default: vanilla loaders redraw every frame
     /// (or every `shadowInterval`), and a hit with a stale key shows old shadows.
     pub shadow_cache: bool,
+    /// CPU occlusion culling: skip sections hidden behind closed ones (vanilla's
+    /// occlusion graph). On by default on Android.
+    pub cpu_occlusion: bool,
+    /// GPU occlusion culling: test section boxes against the depth buffer so
+    /// sections hidden by terrain are not drawn. Hardware-dependent.
+    pub gpu_occlusion: bool,
+    /// CPU occlusion quality: 0 low (fewer distant sections tested), 1 medium,
+    /// 2 high (vanilla behaviour).
+    pub occlusion_quality: u32,
+    /// CPU occlusion update rate: how many frames between full occlusion graph
+    /// searches. Lower = fresher culling, higher CPU cost.
+    pub occlusion_update_rate: u32,
+    /// Maximum GPU occlusion tests per frame: caps the test pass cost at large
+    /// render distances.
+    pub max_occlusion_tests: usize,
+    /// Mesh pool size: max meshes retained per worker for reuse. Lower saves
+    /// RAM on memory-constrained devices.
+    pub mesh_pool_size: usize,
+    /// Android performance profile: presets block-engine and renderer settings
+    /// for a target device class.
+    #[cfg(target_os = "android")]
+    pub android_profile: AndroidProfile,
     /// The graphics API (Windows only; see `GraphicsApi`).
     pub api: GraphicsApi,
     /// The shader pack picked in `shaderpacks/` (`shader_pack_list`); empty: none. Its key is
@@ -453,6 +525,14 @@ impl Default for Graphics {
             hdr_key: "key.keyboard.unknown".into(),
             battery: false,
             shadow_cache: false,
+            cpu_occlusion: cfg!(target_os = "android"),
+            gpu_occlusion: false,
+            occlusion_quality: 1,
+            occlusion_update_rate: 1,
+            max_occlusion_tests: if cfg!(target_os = "android") { 2048 } else { 4096 },
+            mesh_pool_size: if cfg!(target_os = "android") { 64 } else { 128 },
+            #[cfg(target_os = "android")]
+            android_profile: AndroidProfile::Balanced,
             api: GraphicsApi::Auto,
             shader_pack: String::new(),
         }
@@ -556,6 +636,22 @@ impl Graphics {
                 "hdrKey" if value.starts_with("key.") => g.hdr_key = value.to_owned(),
                 "batteryMode" => g.battery = flag(g.battery),
                 "shadowCache" => g.shadow_cache = flag(g.shadow_cache),
+                "cpuOcclusion" => g.cpu_occlusion = flag(g.cpu_occlusion),
+                "gpuOcclusion" => g.gpu_occlusion = flag(g.gpu_occlusion),
+                "occlusionQuality" => {
+                    g.occlusion_quality = number(g.occlusion_quality).min(2);
+                }
+                "occlusionUpdateRate" => {
+                    g.occlusion_update_rate = number(g.occlusion_update_rate).max(1).min(60);
+                }
+                "maxOcclusionTests" => {
+                    g.max_occlusion_tests = number(g.max_occlusion_tests as u32) as usize;
+                }
+                "meshPoolSize" => {
+                    g.mesh_pool_size = number(g.mesh_pool_size as u32).max(8) as usize;
+                }
+                #[cfg(target_os = "android")]
+                "androidProfile" => g.android_profile = AndroidProfile::parse(value),
                 "graphicsApi" => g.api = GraphicsApi::from_name(value).unwrap_or_default(),
                 "pickedShaderPack" => g.shader_pack = value.to_owned(),
                 "overlay" => {
@@ -571,8 +667,8 @@ impl Graphics {
         g
     }
     pub fn serialize(&self) -> String {
-        format!(
-            "preset:{}\nlodDistance:{}\nfarDetail:{}\ncaveCulling:{}\nentityCulling:{}\nchunkUpdates:{}\nuploadBudgetKiB:{}\ntextureBudgetMiB:{}\nsky:{}\nfog:{}\nweather:{}\nanimatedTextures:{}\nditherCutoutMips:{}\npresentMode:{}\nframePacing:{}\nworkers:{}\noverlay:{}\nresolutionScale:{}\nfxaa:{}\ntaa:{}\nupscaling:{}\nscreenshotQuality:{}\nhdr:{}\nhdrPaperWhite:{}\nhdrPeak:{}\nhdrBlackLevel:{}\nhdrUiBrightness:{}\nhdrKey:{}\nbatteryMode:{}\nshadowCache:{}\ngraphicsApi:{}\npickedShaderPack:{}\n",
+        let mut s = format!(
+            "preset:{}\nlodDistance:{}\nfarDetail:{}\ncaveCulling:{}\nentityCulling:{}\nchunkUpdates:{}\nuploadBudgetKiB:{}\ntextureBudgetMiB:{}\nsky:{}\nfog:{}\nweather:{}\nanimatedTextures:{}\nditherCutoutMips:{}\npresentMode:{}\nframePacing:{}\nworkers:{}\noverlay:{}\nresolutionScale:{}\nfxaa:{}\ntaa:{}\nupscaling:{}\nscreenshotQuality:{}\nhdr:{}\nhdrPaperWhite:{}\nhdrPeak:{}\nhdrBlackLevel:{}\nhdrUiBrightness:{}\nhdrKey:{}\nbatteryMode:{}\nshadowCache:{}\ncpuOcclusion:{}\ngpuOcclusion:{}\nocclusionQuality:{}\nocclusionUpdateRate:{}\nmaxOcclusionTests:{}\nmeshPoolSize:{}\n",
             self.preset.name(),
             self.lod_distance,
             self.far_detail.name(),
@@ -610,9 +706,19 @@ impl Graphics {
             self.hdr_key,
             bool_text(self.battery),
             bool_text(self.shadow_cache),
-            self.api.name(),
-            self.shader_pack,
-        )
+            bool_text(self.cpu_occlusion),
+            bool_text(self.gpu_occlusion),
+            self.occlusion_quality,
+            self.occlusion_update_rate,
+            self.max_occlusion_tests,
+            self.mesh_pool_size,
+        );
+        #[cfg(target_os = "android")]
+        {
+            s.push_str(&format!("androidProfile:{}\n", self.android_profile.name()));
+        }
+        s.push_str(&format!("graphicsApi:{}\npickedShaderPack:{}\n", self.api.name(), self.shader_pack));
+        s
     }
     /// Binds Horizon's graphics key `name` (`HDR_KEY`); false for another name.
     pub fn set_key(&mut self, name: &str, value: String) -> bool {
@@ -715,6 +821,66 @@ pub fn apply_preset(preset: Preset, s: &mut crate::settings::Settings) {
     g.sky = true;
     g.fog = true;
     g.weather = true;
+    #[cfg(target_os = "android")]
+    {
+        apply_android_profile(g.android_profile, g);
+    }
+}
+
+/// Apply an Android performance profile to Horizon's graphics settings.
+#[cfg(target_os = "android")]
+pub(crate) fn apply_android_profile(profile: AndroidProfile, g: &mut Graphics) {
+    match profile {
+        AndroidProfile::Balanced => {
+            g.cave_culling = true;
+            g.entity_culling = true;
+            g.cpu_occlusion = true;
+            g.gpu_occlusion = false;
+            g.occlusion_quality = 1;
+            g.occlusion_update_rate = 1;
+            g.max_occlusion_tests = 2048;
+            g.mesh_pool_size = 64;
+            g.chunk_updates = 0;
+            g.upload_budget_kib = 0;
+        }
+        AndroidProfile::Performance => {
+            g.cave_culling = true;
+            g.entity_culling = true;
+            g.cpu_occlusion = true;
+            g.gpu_occlusion = false;
+            g.occlusion_quality = 0;
+            g.occlusion_update_rate = 2;
+            g.max_occlusion_tests = 1024;
+            g.mesh_pool_size = 48;
+            g.chunk_updates = 256;
+            g.upload_budget_kib = 1024;
+        }
+        AndroidProfile::LowMemory => {
+            g.cave_culling = true;
+            g.entity_culling = true;
+            g.cpu_occlusion = true;
+            g.gpu_occlusion = false;
+            g.occlusion_quality = 0;
+            g.occlusion_update_rate = 4;
+            g.max_occlusion_tests = 512;
+            g.mesh_pool_size = 32;
+            g.chunk_updates = 128;
+            g.upload_budget_kib = 512;
+        }
+        AndroidProfile::BatteryFriendly => {
+            g.cave_culling = true;
+            g.entity_culling = true;
+            g.cpu_occlusion = true;
+            g.gpu_occlusion = false;
+            g.occlusion_quality = 1;
+            g.occlusion_update_rate = 2;
+            g.max_occlusion_tests = 1024;
+            g.mesh_pool_size = 48;
+            g.chunk_updates = 128;
+            g.upload_budget_kib = 512;
+        }
+        AndroidProfile::Custom => {}
+    }
 }
 
 #[cfg(test)]
@@ -769,6 +935,14 @@ mod tests {
             hdr_key: "key.keyboard.h".into(),
             battery: true,
             shadow_cache: true,
+            cpu_occlusion: true,
+            gpu_occlusion: false,
+            occlusion_quality: 1,
+            occlusion_update_rate: 2,
+            max_occlusion_tests: 2048,
+            mesh_pool_size: 64,
+            #[cfg(target_os = "android")]
+            android_profile: AndroidProfile::Performance,
             api: GraphicsApi::Dx12,
             shader_pack: "Golden Hour".into(),
         };

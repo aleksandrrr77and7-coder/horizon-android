@@ -1,6 +1,6 @@
 # Microsoft account sign-in and online-mode play
 
-Horizon signs players in with their Microsoft account in the launcher and joins online-mode
+Voxelix signs players in with their Microsoft account in the launcher and joins online-mode
 (authenticated) servers like vanilla 26.3 does. The launcher plays only with an account that owns
 Minecraft: Java Edition ([the owner gate](#the-owner-gate)); offline names, LAN and offline-mode
 servers play behind it. This note is the design, the status of each part and what Ludovic has to
@@ -14,7 +14,7 @@ no Microsoft sign-in"); release builds have it.
 
 1. **Azure app registration** (https://portal.azure.com → Microsoft Entra ID → App registrations →
    New registration):
-   - Name: `Horizon` (shown to players on the Microsoft consent page).
+   - Name: `Voxelix` (shown to players on the Microsoft consent page).
    - Supported account types: **Personal Microsoft accounts only** (Minecraft accounts are
      consumer accounts; the launcher uses the `consumers` tenant).
    - Redirect URI: none needed for the device-code flow. If the form insists, add a
@@ -68,7 +68,7 @@ All requests use HTTPS and JSON except the two OAuth calls (form-encoded):
 
 ## The owner gate
 
-Decided 2026-10-27 (Ludovic, after a modder's suggestion): like other launchers, Horizon's
+Decided 2026-10-27 (Ludovic, after a modder's suggestion): like other launchers, Voxelix's
 launcher starts the game only while an account in it owns Java Edition. Offline play stays
 possible; the launcher just doesn't offer it on its own.
 
@@ -226,7 +226,7 @@ Vanilla's `ClientHandshakePacketListenerImpl.handleHello`, `Crypt` and authlib's
    game and the launcher)", `InsufficientPrivilegesException` → "Multiplayer is disabled…",
    `multiplayer.access.banned` / `FORCED_USERNAME_CHANGE` → "You are banned from playing online",
    5xx or no network → "The authentication servers are currently not reachable…". Without a session
-   the game says "This server is in online mode. Sign in with your Microsoft account in the Horizon
+   the game says "This server is in online mode. Sign in with your Microsoft account in the Voxelix
    launcher to join it." (Vanilla goes on after a failed join on LAN-discovered servers, which then
    refuse the player anyway; Horizon stops at once.)
 5. Send `ServerboundKeyPacket` (the secret and the challenge, each RSA PKCS#1 v1.5 encrypted with

@@ -10,6 +10,8 @@ use crate::{
     text::Text,
     ui,
 };
+#[cfg(target_os = "android")]
+use crate::graphics::{AndroidProfile, apply_android_profile};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Level {
@@ -56,6 +58,20 @@ pub enum H {
     BatteryMode,
     ShadowCache,
     GraphicsApi,
+    /// CPU occlusion culling on/off.
+    CpuOcclusion,
+    /// GPU occlusion culling on/off.
+    GpuOcclusion,
+    /// CPU occlusion quality: 0 low, 1 medium, 2 high.
+    OcclusionQuality,
+    /// CPU occlusion update rate (frames between full graph searches).
+    OcclusionUpdateRate,
+    /// Maximum GPU occlusion tests per frame.
+    MaxOcclusionTests,
+    /// Mesh pool size per worker.
+    MeshPoolSize,
+    /// Android performance profile.
+    AndroidProfile,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -346,6 +362,45 @@ pub fn rows(level: Level) -> Vec<Row> {
                 Low,
                 "Mesh data sent to the GPU per frame. Lower is smoother while loading.",
             ),
+            Row::Header("Occlusion"),
+            h(
+                H::CpuOcclusion,
+                None,
+                "Skips sections hidden behind closed ones (CPU graph). Vanilla behaviour.",
+            ),
+            h(
+                H::GpuOcclusion,
+                None,
+                "Tests section boxes against the depth buffer (GPU). Hardware-dependent.",
+            ),
+            h(
+                H::OcclusionQuality,
+                None,
+                "CPU occlusion quality: low tests fewer distant sections, high is vanilla.",
+            ),
+            h(
+                H::OcclusionUpdateRate,
+                None,
+                "Frames between full occlusion graph searches. Lower = fresher, higher CPU.",
+            ),
+            h(
+                H::MaxOcclusionTests,
+                None,
+                "Maximum GPU occlusion tests per frame. Caps test-pass cost at distance.",
+            ),
+            h(
+                H::MeshPoolSize,
+                None,
+                "Meshes retained per worker for reuse. Lower saves RAM.",
+            ),
+            #[cfg(target_os = "android")]
+            Row::Header("Android Profile"),
+            #[cfg(target_os = "android")]
+            h(
+                H::AndroidProfile,
+                None,
+                "Presets block-engine and renderer settings for this device class.",
+            ),
             Row::Header("Overlay"),
             h(
                 H::Overlay,
@@ -594,7 +649,31 @@ impl H {
             }
             H::BatteryMode => labelled("Battery Mode", on_off(g.battery)),
             H::ShadowCache => labelled("Shadow Cache", on_off(g.shadow_cache)),
+            H::CpuOcclusion => labelled("CPU Occlusion", on_off(g.cpu_occlusion)),
+            H::GpuOcclusion => labelled("GPU Occlusion", on_off(g.gpu_occlusion)),
+            H::OcclusionQuality => labelled(
+                "Occlusion Quality",
+                match g.occlusion_quality {
+                    0 => "Low",
+                    1 => "Medium",
+                    _ => "High",
+                },
+            ),
+            H::OcclusionUpdateRate => labelled(
+                "Occlusion Update Rate",
+                lang::tr("%s frames", &[&g.occlusion_update_rate]),
+            ),
+            H::MaxOcclusionTests => labelled(
+                "Max Occlusion Tests",
+                lang::tr("%s per frame", &[&g.max_occlusion_tests]),
+            ),
+            H::MeshPoolSize => labelled(
+                "Mesh Pool Size",
+                lang::tr("%s meshes", &[&g.mesh_pool_size]),
+            ),
             H::GraphicsApi => labelled("Graphics API", g.api.label()),
+            #[cfg(target_os = "android")]
+            H::AndroidProfile => labelled("Android Profile", g.android_profile.label()),
             H::Overlay => labelled(
                 "Performance Overlay",
                 match g.overlay {
@@ -681,6 +760,34 @@ impl H {
             H::Hdr => g.hdr = !g.hdr,
             H::BatteryMode => g.battery = !g.battery,
             H::ShadowCache => g.shadow_cache = !g.shadow_cache,
+            H::CpuOcclusion => g.cpu_occlusion = !g.cpu_occlusion,
+            H::GpuOcclusion => g.gpu_occlusion = !g.gpu_occlusion,
+            H::OcclusionQuality => {
+                g.occlusion_quality = (g.occlusion_quality + if back { 2 } else { 1 }) % 3;
+            }
+            H::OcclusionUpdateRate => {
+                let rates = [1, 2, 4, 8, 16];
+                let i = rates.iter().position(|&r| r == g.occlusion_update_rate).unwrap_or(0);
+                let i = (i + if back { rates.len() - 1 } else { 1 }) % rates.len();
+                g.occlusion_update_rate = rates[i];
+            }
+            H::MaxOcclusionTests => {
+                let tests = [512, 1024, 2048, 4096];
+                let i = tests.iter().position(|&t| t == g.max_occlusion_tests).unwrap_or(2);
+                let i = (i + if back { tests.len() - 1 } else { 1 }) % tests.len();
+                g.max_occlusion_tests = tests[i];
+            }
+            H::MeshPoolSize => {
+                let sizes = [32, 48, 64, 96, 128];
+                let i = sizes.iter().position(|&s| s == g.mesh_pool_size).unwrap_or(2);
+                let i = (i + if back { sizes.len() - 1 } else { 1 }) % sizes.len();
+                g.mesh_pool_size = sizes[i];
+            }
+            #[cfg(target_os = "android")]
+            H::AndroidProfile => {
+                g.android_profile = step(&AndroidProfile::ALL, g.android_profile, back);
+                apply_android_profile(g.android_profile, g);
+            }
             H::GraphicsApi => {
                 // Android selects the backend before creating the renderer in
                 // launcher Settings. Stale/programmatic menu actions must not
@@ -752,6 +859,8 @@ impl Item {
             Item::Horizon(H::Hdr) => g.hdr,
             Item::Horizon(H::BatteryMode) => g.battery,
             Item::Horizon(H::ShadowCache) => g.shadow_cache,
+            Item::Horizon(H::CpuOcclusion) => g.cpu_occlusion,
+            Item::Horizon(H::GpuOcclusion) => g.gpu_occlusion,
             Item::Vanilla(Opt::ViewBobbing) => s.view_bobbing,
             Item::Vanilla(Opt::Vsync) => s.vsync,
             Item::Vanilla(Opt::Fullscreen) => s.fullscreen,
@@ -814,6 +923,12 @@ impl Item {
                     | H::BatteryMode
                     | H::ShadowCache
                     | H::GraphicsApi
+                    | H::CpuOcclusion
+                    | H::GpuOcclusion
+                    | H::OcclusionQuality
+                    | H::OcclusionUpdateRate
+                    | H::MaxOcclusionTests
+                    | H::MeshPoolSize
             ) | Item::Vanilla(
                 Opt::GuiScale
                     | Opt::Fullscreen

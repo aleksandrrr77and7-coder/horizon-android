@@ -1,4 +1,4 @@
-# Horizon: a map for agents
+# Voxelix: a map for agents
 
 Minecraft: Java Edition 26.3 rewritten in Rust (wgpu). Vanilla is the specification wherever it has the
 feature. Read [CONTRIBUTING.md](CONTRIBUTING.md) once; this page tells you where things are.
@@ -12,7 +12,7 @@ Feature → files → harness for the most-changed areas: [docs/architecture.md]
   folders in `HORIZON_HOME` (the game's data), `HORIZON_LAUNCHER_HOME`, `XDG_DATA_HOME` and
   `XDG_CONFIG_HOME`, plus `HORIZON_LAUNCHER_NO_SELF_UPDATE=1` and `HORIZON_NO_AUDIO=1`, and, for the
   launcher, `HORIZON_LAUNCHER_TRASH`, `HORIZON_LAUNCHER_CLIPBOARD` and `HORIZON_LAUNCHER_DESKTOP` pointing into the scratch home. Never write to
-  `~/.local/share/{applications,horizon,horizon-launcher}` or `~/.local/bin`.
+  `~/.local/share/{applications,Voxelix,Voxelix-launcher}` or `~/.local/bin`.
 - **Mark what an agent posts.** A PR body starts with a line naming the person whose agent opened it and
   the tool: `> 🤖 Opened by <login>'s AI agent (<tool, model>), not by <login> personally.`, where `<login>`
   is the GitHub account the PR is opened from (`gh api user --jq .login`). Issues say "Filed by", reviews

@@ -922,7 +922,7 @@ carried-over mods into Horizon. A whole pack (`--pack`, its recommended JVM argu
 
 Two comparisons, both published:
 
-1. **Same content.** NeoForge with only the mods Horizon has ported (plus their dependencies)
+1. **Same content.** NeoForge with only the mods Voxelix has ported (plus their dependencies)
    against Horizon with those ports. Content matches, so this is the honest ratio.
 2. **What players run today.** The full pack on NeoForge as a reference row, labelled as
    such, beside Horizon's partial pack. This is not a like-for-like ratio.

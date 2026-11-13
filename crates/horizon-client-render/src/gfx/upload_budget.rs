@@ -56,6 +56,57 @@ impl UploadBudget {
         }
         budget
     }
+    /// Adaptive upload budget with camera movement awareness.
+    /// When the camera moves quickly (elytra flight, fast flying), increase
+    /// the upload budget to prevent chunk holes. When standing still or moving
+    /// slowly, keep strict limits to save GPU bandwidth.
+    pub fn with_camera_speed(
+        count_limit: usize,
+        byte_limit: u64,
+        mobile: bool,
+        wait: Duration,
+        frame_dt: Duration,
+        interactive: bool,
+        camera_speed_mps: f32,
+    ) -> Self {
+        let mut budget = Self::with_frame_state(
+            count_limit,
+            byte_limit,
+            mobile,
+            wait,
+            frame_dt,
+            interactive,
+        );
+        if mobile {
+            // Fast movement: increase upload budget to keep up with chunk generation
+            // during elytra flight or fast movement.
+            let speed_multiplier = if camera_speed_mps > 25.0 {
+                // Elytra flight or very fast movement: 1.5x budget
+                1.5f64
+            } else if camera_speed_mps > 10.0 {
+                // Sprinting or moderate flight: 1.25x budget
+                1.25f64
+            } else if camera_speed_mps > 3.0 {
+                // Walking: slight increase
+                1.1f64
+            } else {
+                // Standing or slow movement: no increase
+                1.0f64
+            };
+            if speed_multiplier > 1.0 {
+                budget.byte_limit = (budget.byte_limit as f64 * speed_multiplier) as u64;
+                budget.time_limit = budget
+                    .time_limit
+                    .map(|t| Duration::from_secs_f32(t.as_secs_f32() * Self::speed_factor_min(speed_multiplier) as f32));
+            }
+        }
+        budget
+    }
+    fn speed_factor_min(speed_multiplier: f64) -> f64 {
+        // Don't reduce time limit as aggressively as we increase byte limit,
+        // to avoid GPU stall on slow devices.
+        speed_multiplier.min(1.5).max(1.0)
+    }
     pub fn new(count_limit: usize, byte_limit: u64, mobile: bool) -> Self {
         Self {
             count_limit,

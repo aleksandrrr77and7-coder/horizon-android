@@ -1,6 +1,6 @@
-# Horizon's mark and icons
+# Voxelix's mark and icons
 
-**The mark.** An H whose crossbar is the horizon: the line runs edge to edge in Horizon's violet,
+**The mark.** An H whose crossbar is the horizon: the line runs edge to edge in Voxelix's violet,
 the stems above it in full strength and their reflection below at a third. It is drawn on whole
 units of a 16-unit grid, so it is sharp at 16 px and holds at 1024 px. `docs/design-system.md`
 places it in the design system; `candidates/` keeps the two alternatives that were shown with it.
@@ -54,7 +54,7 @@ NODE_PATH="$d/node_modules" node -e 'const {chromium}=require("playwright");(asy
 
 | Where | What |
 |-------|------|
-| `crates/horizon-client-render/src/title_edition.rs` | the R, U and S of "RUST EDITION" under the classic title screen's logo: Horizon's own glyphs (MIT), rectangles in that file. The banner is rebuilt at load time from the player's own `textures/gui/title/edition.png` (its "EDITION" and "T" carried over, its shades sampled), so no Mojang pixels are in the repository; a resource pack's banner is left as drawn |
+| `crates/horizon-client-render/src/title_edition.rs` | the R, U and S of "RUST EDITION" under the classic title screen's logo: Voxelix's own glyphs (MIT), rectangles in that file. The banner is rebuilt at load time from the player's own `textures/gui/title/edition.png` (its "EDITION" and "T" carried over, its shades sampled), so no Mojang pixels are in the repository; a resource pack's banner is left as drawn |
 
 ## Uploading (the accounts are Ludovic's)
 
