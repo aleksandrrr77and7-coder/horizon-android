@@ -82,7 +82,7 @@ fn save_file(file: &Path, report: bool) -> std::result::Result<(), String> {
                 .call_method(&dir, "getAbsolutePath", "()Ljava/lang/String;", &[])?
                 .l()?;
             let value: String = env.get_string((&path).into())?.into();
-            Some(PathBuf::from(value).join("HorizonAndroid"))
+            Some(PathBuf::from(value).join("VoxelixAndroid"))
         } else {
             None
         };
@@ -203,9 +203,9 @@ fn write(request: Request) -> Result<String> {
                 &values,
                 "relative_path",
                 if request.report {
-                    "Download/HorizonAndroid"
+                    "Download/VoxelixAndroid"
                 } else {
-                    "Pictures/HorizonAndroid"
+                    "Pictures/VoxelixAndroid"
                 },
             )?;
             pending(&mut env, &values, 1)?;
@@ -300,7 +300,7 @@ fn write(request: Request) -> Result<String> {
             env.call_method(request.resolver.as_obj(),"update","(Landroid/net/Uri;Landroid/content/ContentValues;Ljava/lang/String;[Ljava/lang/String;)I",&[JValue::Object(&row),JValue::Object(&published),JValue::Object(&JObject::null()),JValue::Object(&JObject::null())])?;
         }
         Ok(format!(
-            "{} saved to {}/HorizonAndroid/{name}",
+            "{} saved to {}/VoxelixAndroid/{name}",
             if request.report {
                 "Performance report"
             } else {

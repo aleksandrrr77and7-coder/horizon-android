@@ -48,7 +48,7 @@ pub fn install(
     let v = version(&versions).ok_or("No downloadable shader ZIP is available")?;
     if !v.required.is_empty() {
         return Err(
-            "This shader requires additional projects which Horizon cannot install automatically"
+            "This shader requires additional projects which Voxelix cannot install automatically"
                 .into(),
         );
     }
@@ -95,7 +95,7 @@ pub fn install(
         )
         .map_err(|e| e.to_string())?;
         if native {
-            return Err("This ZIP is a native Horizon shader pack. Use Import file to install it as .hshader".into());
+            return Err("This ZIP is a native Voxelix shader pack. Use Import file to install it as .hshader".into());
         }
         let (algo, hash) = file.checksum().ok_or("The source supplies no checksum")?;
         if replacing {

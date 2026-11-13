@@ -203,7 +203,7 @@ pub fn export_file(
     if file_name.to_ascii_lowercase().ends_with(".png") {
         let _ = crate::gallery::save(file_path);
         return Ok(format!(
-            "Exporting '{file_name}' to Pictures/HorizonAndroid..."
+            "Exporting '{file_name}' to Pictures/VoxelixAndroid..."
         ));
     }
     let rel_str = file_path

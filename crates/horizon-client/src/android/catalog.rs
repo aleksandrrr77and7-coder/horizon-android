@@ -746,11 +746,11 @@ impl Catalog {
                     horizon_client::content_files::Kind::Shaders => "SHADER",
                 };
                 let ext_tag = if name.ends_with(".hmod") {
-                    "Horizon Mod (.hmod)"
+                    "Voxelix Mod (.hmod)"
                 } else if name.ends_with(".jar") {
                     "Java Mod (.jar)"
                 } else if name.ends_with(".hshader") {
-                    "Horizon Shader (.hshader)"
+                    "Voxelix Shader (.hshader)"
                 } else if kind == horizon_client::content_files::Kind::Shaders {
                     "Shader Pack (.zip)"
                 } else {
@@ -858,7 +858,7 @@ impl Catalog {
                     size_bytes,
                     badge: "MOD",
                     subtitle: format!(
-                        "Horizon Native Mod (.hnmod)  •  {}  •  {name}",
+                        "Voxelix Native Mod (.hnmod)  •  {}  •  {name}",
                         format_file_size(size_bytes)
                     ),
                 });
@@ -876,7 +876,7 @@ impl Catalog {
                         enabled: true,
                         size_bytes: 0,
                         badge: "MOD",
-                        subtitle: format!("Built-in Horizon Mod  •  {b_desc}  •  {b_id}"),
+                        subtitle: format!("Built-in Voxelix Mod  •  {b_desc}  •  {b_id}"),
                     });
                 }
             }
@@ -1569,7 +1569,7 @@ impl Catalog {
             && items.is_empty()
             && self.config.shader_source == crate::shader_catalog::Origin::Horizon
         {
-            "No Horizon shader packs match this search. Try another query or import a .hshader."
+            "No Voxelix shader packs match this search. Try another query or import a .hshader."
                 .into()
         } else if self.page == Page::Mods
             && self.config.mod_source == crate::shader_catalog::Origin::Modrinth
@@ -1580,7 +1580,7 @@ impl Catalog {
             )
         } else if self.page == Page::Mods {
             format!(
-                "{} Horizon mods available (playhorizon.dev/mods) - select Install to download",
+                "{} Voxelix mods available (playhorizon.dev/mods) - select Install to download",
                 items.len()
             )
         } else {
@@ -1647,7 +1647,7 @@ impl Catalog {
                 .read_to_end(&mut bytes)
                 .map_err(|e| e.to_string())?;
             if bytes.len() > 32 * 1024 * 1024 {
-                return Err("Horizon mod exceeds 32 MiB".into());
+                return Err("Voxelix mod exceeds 32 MiB".into());
             }
             *progress.lock().unwrap_or_else(|e| e.into_inner()) = 0.85;
             let dir = game.join("horizon-mods");
@@ -1711,7 +1711,7 @@ impl Catalog {
         let status = match (project.kind, project.source) {
             (Kind::Shader, browser::SourceId::Modrinth) => "Downloading shader pack ZIP...",
             (Kind::Mod, browser::SourceId::Modrinth) => "Downloading and porting Modrinth mod...",
-            (Kind::Mod, _) => "Downloading Horizon mod package...",
+            (Kind::Mod, _) => "Downloading Voxelix mod package...",
             _ => "Checking compatibility and downloading...",
         };
         self.job(status, move || {
