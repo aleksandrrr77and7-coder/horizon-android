@@ -117,6 +117,22 @@ class ArtifactTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "does not know yet"):
                 lab.import_manifest(lock, cache, launcher)
 
+    def test_shipped_research_lock_accepts_official_mojang_26_3_manifest(self):
+        # Mojang republishes 26.3 version JSONs (asset-index only changes). The lock's
+        # accepted-manifest SHA1 list must cover the currently published one so
+        # horizon-prepare accepts it; integrity stays checked against Mojang's own hash
+        # by lab.download. Jars and Java requirement are unchanged by the republish.
+        lock = json.loads(lab.LOCK.read_text(encoding="utf-8"))
+        current_manifest_sha1 = "9f67e10ed013deeaad20ac3c800652765d493408"
+        current_asset_sha1 = "e99f9973047785b5a9d52eaf72020b97545053c9"
+        self.assertTrue(lab.manifest_accepted(lock, current_manifest_sha1))
+        self.assertIn(current_asset_sha1, lock["minecraft"]["accepted_asset_index_sha1"])
+        self.assertEqual(lock["minecraft"]["client_sha1"],
+                         "e877b6a07acd633fb3bb475002175cec036e7b87")
+        self.assertEqual(lock["minecraft"]["server_sha1"],
+                         "33680f5f2ac32864d6d7cf5e56a705fdb3e05f4c")
+        self.assertEqual(lock["minecraft"]["java_major"], 25)
+
 
     def test_sourcefile_metadata_covers_inner_classes(self):
         with tempfile.TemporaryDirectory() as temp:
