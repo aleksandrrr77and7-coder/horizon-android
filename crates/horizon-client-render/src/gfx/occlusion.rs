@@ -35,26 +35,6 @@ const DISTANT_SECTIONS: i32 = 60 >> 4;
 const DISTANT_SQR: f64 = 3600.0;
 /// `CEILED_SECTION_DIAGONAL`: `ceil(sqrt(3) * 16)`.
 const SECTION_DIAGONAL: f64 = 28.0;
-// Voxelix V03.2: Enhanced occlusion culling for fast camera movement.
-// Increases the distant culling radius from 60 to 80 blocks, so more sections
-// are tested for occlusion when far from the camera.
-const DISTANT_SECTIONS_VOXELIX: i32 = 80 >> 4;
-const DISTANT_SQR_VOXELIX: f64 = 6400.0;
-// Smaller step size for ray tracing along lines of sight to detect occluded
-// sections sooner during fast camera movement (elytra flight).
-const SECTION_DIAGONAL_VOXELIX: f64 = 16.0;
-/// Quality-dependent distant culling constants.
-/// Quality 0 (Low): vanilla values (60 blocks, step 28).
-/// Quality 1 (Medium): Voxelix enhanced (80 blocks, step 16).
-/// Quality 2 (High): same as Medium but with additional distant testing.
-fn distant_constants(quality: u32) -> (i32, f64, f64) {
-    match quality {
-        0 => (DISTANT_SECTIONS, DISTANT_SQR, SECTION_DIAGONAL),
-        2 => (DISTANT_SECTIONS_VOXELIX, DISTANT_SQR_VOXELIX, SECTION_DIAGONAL_VOXELIX),
-        _ => (DISTANT_SECTIONS_VOXELIX, DISTANT_SQR_VOXELIX, SECTION_DIAGONAL_VOXELIX),
-    }
-}
-
 /// In `Graph::rays`: the line from this corner stays in reached sections.
 const SEES: u8 = u8::MAX;
 
@@ -157,10 +137,6 @@ struct Graph {
     /// search, so a line that stays in reached sections keeps doing so, and
     /// one that didn't need only be checked again from where it failed.
     rays: Vec<u8>,
-    /// Quality-dependent distant culling constants, set in `search()`.
-    distant_sections: i32,
-    distant_sqr: f64,
-    section_diagonal: f64,
 }
 
 impl Graph {
@@ -206,7 +182,6 @@ impl Graph {
         columns: &Columns,
         camera: DVec3,
         radius: i32,
-        quality: u32,
         vis: &mut Vec<u64>,
         queue: &mut VecDeque<u32>,
     ) {
@@ -250,11 +225,6 @@ impl Graph {
         self.rays.clear();
         self.rays
             .resize((side + 1) * (side + 1) * (self.height + 1) as usize, 0);
-        // Quality-dependent distant culling constants.
-        let (distant_sections, distant_sqr, section_diagonal) = distant_constants(quality);
-        self.distant_sections = distant_sections;
-        self.distant_sqr = distant_sqr;
-        self.section_diagonal = section_diagonal;
         vis.clear();
         vis.resize(size, ALL_VISIBLE);
         for dz in -radius..=radius {
@@ -364,9 +334,9 @@ impl Graph {
                     .filter(|face| entered & (1 << face) != 0)
                     .fold(0, |exits, face| exits | (vis >> (face * 6)) as u8 & 0x3f)
             };
-            let distant = (key.0 - eye.0).abs() > self.distant_sections
-                || (key.1 - eye.1).abs() > self.distant_sections
-                || (key.2 - eye.2).abs() > self.distant_sections;
+            let distant = (key.0 - eye.0).abs() > DISTANT_SECTIONS
+                || (key.1 - eye.1).abs() > DISTANT_SECTIONS
+                || (key.2 - eye.2).abs() > DISTANT_SECTIONS;
             // The distant test once per axis: both steps along an axis start
             // from the same corner. While the camera is in the section the
             // graph was searched from, every step leads away from it or
@@ -463,14 +433,14 @@ impl Graph {
             camera[2] - check[2],
         ];
         let inverse = 1.0 / (to[0] * to[0] + (to[1] * to[1] + to[2] * to[2])).sqrt();
-        let step = to.map(|t| t * inverse * self.section_diagonal);
+        let step = to.map(|t| t * inverse * SECTION_DIAGONAL);
         let (min_y, max_y) = (
             f64::from(self.min_y),
             f64::from(self.min_y + self.sections * 16 - 1),
         );
         let far = |p: &[f64; 3]| {
             let (x, y, z) = (p[0] - camera[0], p[1] - camera[1], p[2] - camera[2]);
-            x * x + (y * y + z * z) > self.distant_sqr
+            x * x + (y * y + z * z) > DISTANT_SQR
         };
         let mut sample = 0u8;
         while sample + 1 < known {
@@ -512,7 +482,6 @@ struct Job {
     edits: Vec<Edit>,
     camera: DVec3,
     radius: i32,
-    quality: u32,
     /// Buffers to reuse.
     graph: Graph,
 }
@@ -537,7 +506,7 @@ impl Worker {
                         columns.apply(edit);
                     }
                     job.graph
-                        .search(&columns, job.camera, job.radius, job.quality, &mut vis, &mut queue);
+                        .search(&columns, job.camera, job.radius, &mut vis, &mut queue);
                     if done_tx.send((job.graph, job.edits)).is_err() {
                         break;
                     }
@@ -575,14 +544,11 @@ pub struct Occlusion {
     changed_late: Vec<SectionKey>,
     vis: Vec<u64>,
     queue: VecDeque<u32>,
-    /// CPU occlusion quality: 0 low (vanilla values), 1 medium (Voxelix),
-    /// 2 high (enhanced distant testing).
-    quality: u32,
 }
 
 impl Occlusion {
     /// The world's lowest block y and its height in sections.
-    pub fn new(min_y: i32, sections: i32, quality: u32) -> Self {
+    pub fn new(min_y: i32, sections: i32) -> Self {
         Self {
             columns: Columns::new(min_y, sections),
             edits: Vec::new(),
@@ -597,7 +563,6 @@ impl Occlusion {
             changed_late: Vec::new(),
             vis: Vec::new(),
             queue: VecDeque::new(),
-            quality,
         }
     }
     pub fn set(&mut self, key: SectionKey, vis: u64) {
@@ -644,10 +609,6 @@ impl Occlusion {
     pub fn contains(&self, key: SectionKey) -> bool {
         self.graph.as_ref().is_none_or(|g| g.contains(key))
     }
-    /// Update the CPU occlusion quality. Takes effect on the next full search.
-    pub fn set_quality(&mut self, quality: u32) {
-        self.quality = quality;
-    }
     /// Take a finished search, propagate changed sections into the graph,
     /// and start a search when sections changed or the camera moved to
     /// another section. Never waits for the worker.
@@ -679,7 +640,6 @@ impl Occlusion {
                 edits: std::mem::take(&mut self.edits),
                 camera,
                 radius,
-                quality: self.quality,
                 graph,
             };
             if worker.jobs.send(job).is_ok() {
@@ -696,7 +656,6 @@ impl Occlusion {
             &self.columns,
             camera,
             radius,
-            self.quality,
             &mut self.vis,
             &mut self.queue,
         );
@@ -800,7 +759,7 @@ mod tests {
 
     #[test]
     fn open_space_reaches_the_whole_box() {
-        let mut o = Occlusion::new(0, 4, 1);
+        let mut o = Occlusion::new(0, 4);
         o.settle(at((0, 1, 0)), 2);
         for x in -2..=2 {
             for z in -2..=2 {
@@ -814,7 +773,7 @@ mod tests {
 
     #[test]
     fn closed_neighbours_hide_what_is_behind_them() {
-        let mut o = Occlusion::new(0, 4, 1);
+        let mut o = Occlusion::new(0, 4);
         for (dx, dy, dz) in STEPS {
             o.set((dx, 1 + dy, dz), 0);
         }
@@ -835,7 +794,7 @@ mod tests {
     /// nowhere still leads on through the face it is entered through later.
     #[test]
     fn a_section_leads_on_through_every_face_it_is_entered_through() {
-        let mut o = Occlusion::new(0, 4, 1);
+        let mut o = Occlusion::new(0, 4);
         // (1, 1, 1) is reached through its west face first (from (0, 1, 1),
         // queued before (1, 1, 0)), then through its north face. Only north
         // leads on, to the east.
@@ -857,7 +816,7 @@ mod tests {
 
     #[test]
     fn frames_never_wait_and_partial_updates_open_at_once() {
-        let mut o = Occlusion::new(0, 4, 1);
+        let mut o = Occlusion::new(0, 4);
         for (dx, dy, dz) in STEPS {
             o.set((dx, 1 + dy, dz), 0);
         }
@@ -879,7 +838,7 @@ mod tests {
 
     #[test]
     fn a_graph_that_lost_the_camera_culls_nothing() {
-        let mut o = Occlusion::new(0, 4, 1);
+        let mut o = Occlusion::new(0, 4);
         for (dx, dy, dz) in STEPS {
             o.set((dx, 1 + dy, dz), 0);
         }
@@ -905,7 +864,7 @@ mod tests {
     #[test]
     fn a_camera_outside_the_world_sees_it_from_its_top_or_bottom() {
         for from in [(0, 6, 0), (0, 9, 0), (2, 40, -1), (0, -1, 0), (1, -7, 0)] {
-            let mut o = Occlusion::new(0, 6, 1);
+            let mut o = Occlusion::new(0, 6);
             o.settle(at(from), 3);
             for x in -1..=5 {
                 for z in -4..=2 {
@@ -926,7 +885,7 @@ mod tests {
     /// or towards the camera's column.
     #[test]
     fn a_closed_top_layer_hides_the_world_from_above() {
-        let mut o = Occlusion::new(0, 6, 1);
+        let mut o = Occlusion::new(0, 6);
         for x in -3..=3 {
             for z in -3..=3 {
                 o.set((x, 5, z), 0);
@@ -1138,7 +1097,7 @@ mod tests {
         let (mut hidden, mut rayed) = (0, 0);
         for seed in [0x9e37_79b9, 7, 0xdead_beef] {
             for (spread, count, radius) in [(6, 900, 6), (12, 2600, 12)] {
-                let mut o = Occlusion::new(0, 6, 1);
+                let mut o = Occlusion::new(0, 6);
                 random_world(&mut o, seed, count, spread);
                 for from in [(0, 2, 0), (3, 0, -2), (-5, 5, 4), (1, -1, 1), (0, 7, 0)] {
                     // Off-centre, so the rays are not axis-aligned.
@@ -1177,7 +1136,7 @@ mod tests {
         let mut clamped = 0;
         for seed in [0x9e37_79b9, 7, 0xdead_beef, 0x2545_f491] {
             for (spread, count, radius) in [(6, 900, 6), (12, 2600, 12)] {
-                let mut o = Occlusion::new(0, 24, 1);
+                let mut o = Occlusion::new(0, 24);
                 random_world(&mut o, seed, count, spread);
                 let camera = at((0, 2, 0)) + DVec3::new(3.3, -5.7, 1.9);
                 o.settle(camera, radius);
@@ -1248,7 +1207,7 @@ mod tests {
                 (next() % 3000) as f64 / 100.0 - 15.0,
             );
             // Open air: every section reached; then holes along the lines.
-            graph.search(&columns, camera, 12, 1, &mut vis, &mut queue);
+            graph.search(&columns, camera, 12, &mut vis, &mut queue);
             for cell in graph.directions.iter_mut() {
                 if next() % 4 == 0 {
                     *cell = 0;
@@ -1289,7 +1248,7 @@ mod tests {
     /// edge is culled when the line to the camera crosses the wall's shadow.
     #[test]
     fn distant_sections_behind_a_wall_are_culled() {
-        let mut o = Occlusion::new(0, 4, 1);
+        let mut o = Occlusion::new(0, 4);
         // A closed wall at x 2, z -2..=2, the whole height.
         for z in -2..=2 {
             for y in -1..=4 {
@@ -1315,7 +1274,7 @@ mod tests {
     #[test]
     #[ignore]
     fn search_cost() {
-        let mut o = Occlusion::new(-64, 24, 1);
+        let mut o = Occlusion::new(-64, 24);
         let mut seed = 0x9e37_79b9_u64;
         let mut next = || {
             seed ^= seed << 13;
@@ -1343,7 +1302,7 @@ mod tests {
         let mut best = f64::MAX;
         for _ in 0..12 {
             let started = std::time::Instant::now();
-            graph.search(&o.columns, camera, 34, 1, &mut vis, &mut queue);
+            graph.search(&o.columns, camera, 34, &mut vis, &mut queue);
             best = best.min(started.elapsed().as_secs_f64() * 1000.0);
         }
         let reached = graph
@@ -1357,14 +1316,14 @@ mod tests {
     /// The worker's graph is the one the render thread would compute.
     #[test]
     fn the_worker_matches_a_search_on_the_render_thread() {
-        let mut o = Occlusion::new(0, 6, 1);
+        let mut o = Occlusion::new(0, 6);
         random_world(&mut o, 0x9e37_79b9, 800, 6);
         for from in [(0, 2, 0), (3, 0, -2), (-5, 5, 4)] {
             let camera = at(from);
             o.settle(camera, 6);
             o.settle(camera, 6);
             let mut local = Graph::default();
-            local.search(&o.columns, camera, 6, 1, &mut Vec::new(), &mut VecDeque::new());
+            local.search(&o.columns, camera, 6, &mut Vec::new(), &mut VecDeque::new());
             let graph = o.graph.as_ref().expect("searched");
             assert_eq!(graph.directions, local.directions);
             assert_eq!(graph.entered, local.entered);
@@ -1373,7 +1332,7 @@ mod tests {
 
     #[test]
     fn vertical_clamping_bounds_height_and_reaches_open_sky() {
-        let mut o = Occlusion::new(0, 24, 1);
+        let mut o = Occlusion::new(0, 24);
         o.set((0, 5, 0), 0); // Wall at section 5
         o.settle(at((0, 2, 0)), 4);
         let graph = o.graph.as_ref().expect("searched");
@@ -1382,7 +1341,7 @@ mod tests {
         assert!(o.contains((1, 20, 1)), "open air column is reached");
 
         // An enclosed cave cannot reach the sky
-        let mut cave = Occlusion::new(0, 24, 1);
+        let mut cave = Occlusion::new(0, 24);
         for (dx, dy, dz) in STEPS {
             cave.set((dx, 1 + dy, dz), 0);
         }

@@ -856,7 +856,6 @@ fn checked<T>(device: &wgpu::Device, create: impl FnOnce() -> T) -> Result<T, St
 }
 
 /// A full-screen helper pipeline of ours (`pack_post.wgsl`).
-/// Returns an error when the backend (notably OpenGL ES) refuses the shader or pipeline.
 fn helper(
     device: &wgpu::Device,
     vertex: &str,
@@ -864,44 +863,42 @@ fn helper(
     entries: &[wgpu::BindGroupLayoutEntry],
     targets: &[Option<wgpu::ColorTargetState>],
     depth: Option<wgpu::DepthStencilState>,
-) -> Result<(wgpu::RenderPipeline, wgpu::BindGroupLayout), String> {
-    checked(device, || {
-        let module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("Shader pack helpers"),
-            source: wgpu::ShaderSource::Wgsl(include_str!("pack_post.wgsl").into()),
-        });
-        let layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some(entry),
-            entries,
-        });
-        let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some(entry),
-            bind_group_layouts: &[Some(&layout)],
-            ..Default::default()
-        });
-        let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some(entry),
-            layout: Some(&pipeline_layout),
-            vertex: wgpu::VertexState {
-                module: &module,
-                entry_point: Some(vertex),
-                compilation_options: Default::default(),
-                buffers: &[],
-            },
-            primitive: Default::default(),
-            depth_stencil: depth,
-            multisample: Default::default(),
-            fragment: Some(wgpu::FragmentState {
-                module: &module,
-                entry_point: Some(entry),
-                compilation_options: Default::default(),
-                targets,
-            }),
-            multiview_mask: None,
-            cache: None,
-        });
-        (pipeline, layout)
-    })
+) -> (wgpu::RenderPipeline, wgpu::BindGroupLayout) {
+    let module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+        label: Some("Shader pack helpers"),
+        source: wgpu::ShaderSource::Wgsl(include_str!("pack_post.wgsl").into()),
+    });
+    let layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        label: Some(entry),
+        entries,
+    });
+    let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+        label: Some(entry),
+        bind_group_layouts: &[Some(&layout)],
+        ..Default::default()
+    });
+    let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+        label: Some(entry),
+        layout: Some(&pipeline_layout),
+        vertex: wgpu::VertexState {
+            module: &module,
+            entry_point: Some(vertex),
+            compilation_options: Default::default(),
+            buffers: &[],
+        },
+        primitive: Default::default(),
+        depth_stencil: depth,
+        multisample: Default::default(),
+        fragment: Some(wgpu::FragmentState {
+            module: &module,
+            entry_point: Some(entry),
+            compilation_options: Default::default(),
+            targets,
+        }),
+        multiview_mask: None,
+        cache: None,
+    });
+    (pipeline, layout)
 }
 
 fn entry(binding: u32, ty: wgpu::BindingType) -> wgpu::BindGroupLayoutEntry {
@@ -2396,7 +2393,7 @@ impl PackPost {
                 })
             }))
             .collect();
-        let blit = match helper(
+        let blit = helper(
             device,
             "vs_full",
             if blit_depth {
@@ -2417,26 +2414,8 @@ impl PackPost {
                 stencil: Default::default(),
                 bias: Default::default(),
             }),
-        ) {
-            Ok(blit) => blit,
-            Err(e) => {
-                notes.push(format!("blit pipeline: {e}"));
-                // Retry without depth stencil: OpenGL ES drivers sometimes reject
-                // depth-stencil on fullscreen blits but accept the plain pass.
-                helper(
-                    device,
-                    "vs_full",
-                    if blit_depth { "fs_blit" } else { "fs_blit_color" },
-                    &[
-                        texture_entry(0, float),
-                        texture_entry(1, wgpu::TextureSampleType::Depth),
-                    ],
-                    &blit_targets,
-                    None,
-                ).expect("blit pipeline is required even without depth stencil")
-            }
-        };
-        let copy = match helper(
+        );
+        let copy = helper(
             device,
             "vs_uv",
             "fs_copy",
@@ -2449,33 +2428,7 @@ impl PackPost {
             ],
             &[target(screen)],
             None,
-        ) {
-            Ok(copy) => copy,
-            Err(e) => {
-                notes.push(format!("copy pipeline: {e}"));
-                // Copy pipeline is required to draw pack output to the screen;
-                // without it the pack runs but nothing is shown. This is a
-                // non-fatal fallback so OpenGL ES driver issues don't crash
-                // the game.
-                match helper(
-                    device,
-                    "vs_full",
-                    "fs_blit_color",
-                    &[
-                        texture_entry(0, float),
-                        texture_entry(1, wgpu::TextureSampleType::Depth),
-                    ],
-                    &[target(screen)],
-                    None,
-                ) {
-                    Ok(copy2) => copy2,
-                    Err(e2) => {
-                        notes.push(format!("copy fallback: {e2}"));
-                        panic!("copy pipeline is required: {e2}");
-                    }
-                }
-            }
-        };
+        );
         let filterable = |b: usize| {
             formats[b].sample_type(None, Some(device.features()))
                 == Some(wgpu::TextureSampleType::Float { filterable: true })
@@ -2492,27 +2445,22 @@ impl PackPost {
         }
         let mut down = HashMap::new();
         for b in (0..BUFFERS).filter(|b| mipped & 1 << b != 0) {
-            match helper(
-                device,
-                "vs_full",
-                "fs_down",
-                &[
-                    texture_entry(0, float),
-                    entry(
-                        2,
-                        wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                    ),
-                ],
-                &[target(formats[b])],
-                None,
-            ) {
-                Ok(pipeline) => {
-                    down.entry(formats[b]).or_insert(pipeline);
-                }
-                Err(e) => {
-                    notes.push(format!("down pipeline for buffer {b}: {e}"));
-                }
-            }
+            down.entry(formats[b]).or_insert_with(|| {
+                helper(
+                    device,
+                    "vs_full",
+                    "fs_down",
+                    &[
+                        texture_entry(0, float),
+                        entry(
+                            2,
+                            wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                        ),
+                    ],
+                    &[target(formats[b])],
+                    None,
+                )
+            });
         }
         let white = [255u8; 4];
         Self {

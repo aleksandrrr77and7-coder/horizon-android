@@ -440,22 +440,18 @@ impl Game<'_> {
                                     .name("shader-pack-gpu".into())
                                     .spawn(move || {
                                         let res = horizon_client::crash::contain(move || {
-                                            match ctx.build(prepared.post, &table) {
-                                                Ok(built) => BuiltShaderPack {
-                                                    folder: prepared.folder,
-                                                    built,
-                                                    ids: prepared.ids,
-                                                    items: prepared.items,
-                                                    missing_item: prepared.missing_item,
-                                                    old_hand_light: prepared.old_hand_light,
-                                                    old_lighting: prepared.old_lighting,
-                                                    entities: prepared.entities,
-                                                    missing_entity: prepared.missing_entity,
-                                                    missing_block: prepared.missing_block,
-                                                },
-                                                Err(e) => {
-                                                    return Err(format!("shader pack {name}: {e}"));
-                                                }
+                                            let built = ctx.build(prepared.post, &table);
+                                            BuiltShaderPack {
+                                                folder: prepared.folder,
+                                                built,
+                                                ids: prepared.ids,
+                                                items: prepared.items,
+                                                missing_item: prepared.missing_item,
+                                                old_hand_light: prepared.old_hand_light,
+                                                old_lighting: prepared.old_lighting,
+                                                entities: prepared.entities,
+                                                missing_entity: prepared.missing_entity,
+                                                missing_block: prepared.missing_block,
                                             }
                                         });
                                         let _ = tx.send(res);

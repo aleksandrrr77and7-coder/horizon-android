@@ -1,4 +1,4 @@
-//! Discord Rich Presence: "Playing Voxelix" on the player's Discord profile, with what they are
+//! Discord Rich Presence: "Playing Horizon" on the player's Discord profile, with what they are
 //! doing (docs/native-client.md). A thread of its own talks to the Discord app on this computer
 //! through its local IPC socket (Discord's RPC docs: `discord-ipc-N`, frames of opcode u32 LE +
 //! length u32 LE + JSON). The game only calls [`set`] each frame: a change wakes the thread,
@@ -16,7 +16,7 @@ use serde_json::{Value, json};
 
 use crate::command::args::GameMode;
 
-/// The "Voxelix" application on Discord's developer portal (public: it names the game). Its
+/// The "Horizon" application on Discord's developer portal (public: it names the game). Its
 /// Rich Presence assets: `horizon`, the logo.
 pub const DISCORD_APP_ID: &str = "1563857609738690560";
 /// Whether the application has the game-mode images (`survival`, `creative`, `adventure`,
@@ -129,7 +129,7 @@ pub fn start(enabled: bool, automated: bool) {
         Ok(handle) => {
             let _ = THREAD.set(handle.thread().clone());
         }
-        Err(e) => log::warn!("Voxelix: no Discord presence: {e}"),
+        Err(e) => log::warn!("Horizon: no Discord presence: {e}"),
     }
 }
 
@@ -216,7 +216,7 @@ fn run() {
         match c.set_activity(activity(wanted.status, wanted.since)) {
             Ok(()) => sent = Some((wanted, now)),
             Err(e) => {
-                log::info!("Voxelix: Discord presence disconnected ({e})");
+                log::info!("Horizon: Discord presence disconnected ({e})");
                 client = None;
                 sent = None;
             }
@@ -226,7 +226,7 @@ fn run() {
 
 /// The activity Discord shows for `status`; `None` clears it.
 fn activity(status: Status, since: Option<u64>) -> Option<Value> {
-    let mut assets = json!({"large_image": "voxelix", "large_text": "Voxelix"});
+    let mut assets = json!({"large_image": "horizon", "large_text": "Horizon"});
     let (details, state, party) = match status {
         Status::Off => return None,
         Status::Menus => ("In the menus", None, None),
@@ -338,11 +338,11 @@ impl Client {
             };
             match client.handshake() {
                 Ok(()) => {
-                    log::info!("Voxelix: connected to Discord for Rich Presence");
+                    log::info!("Horizon: connected to Discord for Rich Presence");
                     Some(client)
                 }
                 Err(e) => {
-                    log::debug!("Voxelix: Discord at {} refused: {e}", path.display());
+                    log::debug!("Horizon: Discord at {} refused: {e}", path.display());
                     None
                 }
             }
@@ -370,7 +370,7 @@ impl Client {
             match read_frame(&mut self.pipe)? {
                 (FRAME, frame) if ours(&frame) => {
                     if frame["evt"] == "ERROR" {
-                        log::info!("Voxelix: Discord presence: {}", frame["data"]["message"]);
+                        log::info!("Horizon: Discord presence: {}", frame["data"]["message"]);
                     }
                     return Ok(());
                 }
@@ -518,7 +518,7 @@ mod tests {
         let menus = activity(Status::Menus, None).unwrap();
         assert_eq!(menus["details"], "In the menus");
         assert!(menus.get("state").is_none() && menus.get("timestamps").is_none());
-        assert_eq!(menus["assets"]["large_image"], "voxelix");
+        assert_eq!(menus["assets"]["large_image"], "horizon");
 
         let single = activity(world(Play::Singleplayer, Dimension::Nether), Some(1000)).unwrap();
         assert_eq!(single["details"], "Singleplayer");

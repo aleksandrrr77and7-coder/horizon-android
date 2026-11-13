@@ -83,7 +83,7 @@ fn main() -> Result<(), Error> {
 
     // Generation and light, on the game's worker pool. Meshing is left out
     // here and measured on its own below.
-    let mut streaming = Streaming::new(Arc::new(terrain), context.clone(), threads, 128);
+    let mut streaming = Streaming::new(Arc::new(terrain), context.clone(), threads);
     streaming.mesh = false;
     streaming.center = center;
     streaming.radius = radius;

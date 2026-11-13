@@ -858,7 +858,6 @@ impl Game<'_> {
             Arc::new(NoTerrain),
             self.pack.context.clone(),
             streaming_threads,
-            self.settings.horizon.mesh_pool_size,
         );
         streaming.remote = true;
         streaming.radius = self.settings.render_distance;
@@ -1115,7 +1114,7 @@ impl Game<'_> {
         self.adv = Default::default();
         self.stats = Default::default();
         self.score.board = Default::default();
-        self.streaming = Streaming::new(Arc::new(NoTerrain), self.pack.context.clone(), 1, self.settings.horizon.mesh_pool_size);
+        self.streaming = Streaming::new(Arc::new(NoTerrain), self.pack.context.clone(), 1);
         self.streaming.paused = true;
         self.world = World::new(self.res.facts().air, 0);
         self.player = None;
@@ -2061,7 +2060,6 @@ impl Game<'_> {
                 Arc::new(NoTerrain),
                 self.pack.context.clone(),
                 streaming_threads,
-                self.settings.horizon.mesh_pool_size,
             );
             streaming.remote = true;
             streaming.radius = self.streaming.radius;

@@ -143,7 +143,7 @@ fn resolve(home: &Path, id: &str) -> io::Result<Document> {
 fn row(home: &Path, id: &str) -> io::Result<Value> {
     if id == ROOT {
         return Ok(
-            json!({"document_id": ROOT, "_display_name": "Voxelix Android",
+            json!({"document_id": ROOT, "_display_name": "Horizon Android",
             "mime_type": DIRECTORY, "flags": 0}),
         );
     }

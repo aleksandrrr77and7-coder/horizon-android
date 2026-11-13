@@ -425,9 +425,7 @@ mod particle_tests;
 #[cfg(test)]
 mod visibility_tests;
 #[derive(Clone, Copy, PartialEq, Eq)]
-#[derive(Default)]
 enum Tint {
-    #[default]
     None,
     Grass,
     /// `BlockTintSources.grassBlock`: grass in the world, none on its particles.
@@ -443,7 +441,7 @@ enum Tint {
     Stem(u8),
 }
 /// Per-state data the mesher needs on every block, flattened for speed.
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy)]
 struct Info {
     /// `isSolidRender`.
     solid: bool,
@@ -818,14 +816,13 @@ impl Padded {
     }
     fn fill(&mut self, region: &[[Option<&Chunk>; 3]; 3], sy: i32, own: &mut [u32; 4096]) {
         self.blocks.resize(P * P * P, 0);
-        // `resize` with 0 already zero-fills; a second `fill(0)` is redundant.
+        self.blocks.fill(0);
         self.light.resize(P * P * P, 0);
         let (blocks, light) = (&mut self.blocks, &mut self.light);
         let base_y = region[1][1].map_or(MIN_Y, Chunk::min_y) + sy * 16;
         // The section itself is unpacked in one pass; the border cells of the
         // neighbouring sections are read one by one.
-        // `own` comes from `Box::new([0; 4096])` which is already zero-filled;
-        // `section.unpack` overwrites the cells that matter.
+        own.fill(0);
         let center = region[1][1].map(|c| &c.sections[sy as usize]);
         if let Some(section) = center {
             section.unpack(own);
@@ -1121,31 +1118,16 @@ impl Mesher<'_> {
             [center.x, center.z, base_y],
         );
         let info = &self.tables.info;
-        // Pre-compute Info references for every padded block cell. This removes
-        // the double array lookup (pad.blocks[pi()] then info[id as usize]) on
-        // every block access in the meshing loop below. Info is Copy and does
-        // not change during meshing, so the references stay valid.
-        let default_info = Info::default();
-        let mut state_info: [&Info; P * P * P] = [&default_info; P * P * P];
-        for y in -B..16 + B {
-            for z in -B..16 + B {
-                for x in -B..16 + B {
-                    state_info[pi(x, y, z)] = &info[pad.blocks[pi(x, y, z)] as usize];
-                }
-            }
-        }
         let catalog = &self.render.model_catalog;
         let mut models = Vec::new();
-        let mut last_id: u32 = u32::MAX;
         for y in 0..16 {
             for z in 0..16 {
                 for x in 0..16 {
                     let id = pad.blocks[pi(x, y, z)];
                     if id == 0 {
-                        last_id = u32::MAX;
                         continue;
                     }
-                    let state = state_info[pi(x, y, z)];
+                    let state = &info[id as usize];
                     if state.block_entity {
                         out.block_entities
                             .push(([center.x * 16 + x, base_y + y, center.z * 16 + z], id));
@@ -1157,7 +1139,7 @@ impl Mesher<'_> {
                     if state.solid
                         && Direction::ALL.iter().all(|d| {
                             let [dx, dy, dz] = d.normal();
-                            state_info[pi(x + dx, y + dy, z + dz)].solid
+                            info[pad.blocks[pi(x + dx, y + dy, z + dz)] as usize].solid
                         })
                     {
                         continue;
@@ -1169,7 +1151,7 @@ impl Mesher<'_> {
                         && state.leaves
                         && Direction::ALL.iter().all(|d| {
                             let [dx, dy, dz] = d.normal();
-                            let ni = state_info[pi(x + dx, y + dy, z + dz)];
+                            let ni = &info[pad.blocks[pi(x + dx, y + dy, z + dz)] as usize];
                             ni.solid || ni.leaves
                         })
                     {
@@ -1181,39 +1163,22 @@ impl Mesher<'_> {
                         fluid::tesselate(self.tables, shade, pad, water, &mut out, [x, y, z]);
                     }
                     if !state.model {
-                        last_id = u32::MAX;
                         continue;
                     }
-                    // Cache model lookups: consecutive blocks with the same state ID
-                    // and adjacent positions share the same baked models ONLY when
-                    // the state has a single variant (no position-dependent randomness).
-                    // Weighted variants (e.g. quartz pillars) depend on the position
-                    // seed, so they are never cached across blocks.
-                    let use_cached = last_id == id && x > 0
-                        && pad.blocks[pi(x - 1, y, z)] == id
-                        && models.len() == 1;
-                    if !use_cached {
-                        let world = BlockPos::new(center.x * 16 + x, base_y + y, center.z * 16 + z);
-                        if catalog
-                            .models_at(BlockStateId(id), world, &mut models)
-                            .is_err()
-                        {
-                            last_id = u32::MAX;
-                            continue;
-                        }
+                    let world = BlockPos::new(center.x * 16 + x, base_y + y, center.z * 16 + z);
+                    if catalog
+                        .models_at(BlockStateId(id), world, &mut models)
+                        .is_err()
+                    {
+                        continue;
                     }
-                    last_id = id;
                     // ModelBlockRenderer: the first part decides smooth lighting
                     // for all; light-emitting blocks are always lit flat.
                     let Some(first) = models.first() else {
                         continue;
                     };
                     let ao = self.smooth_lighting && state.emission == 0 && first.ambient_occlusion;
-                    let origin = match offset(
-                        state,
-                        center.x * 16 + x,
-                        center.z * 16 + z,
-                    ) {
+                    let origin = match offset(state, world.x, world.z) {
                         Some(o) => [
                             x as f32 + o[0] as f32,
                             y as f32 + o[1] as f32,
@@ -1225,8 +1190,8 @@ impl Mesher<'_> {
                     let mut force_opaque_face = [false; 6];
                     for d in Direction::ALL {
                         let [dx, dy, dz] = d.normal();
-                        let neighbor_id = pad.blocks[pi(x + dx, y + dy, z + dz)];
-                        let other = state_info[pi(x + dx, y + dy, z + dz)];
+                        let neighbor = pad.blocks[pi(x + dx, y + dy, z + dz)];
+                        let other = &info[neighbor as usize];
                         if self.experimental_leaf_culling && state.leaves && other.leaves {
                             if !self.cutout_leaves {
                                 visible[d as usize] = false;
@@ -1234,7 +1199,8 @@ impl Mesher<'_> {
                             }
                             let other_surrounded = Direction::ALL.iter().all(|nd| {
                                 let [nx, ny, nz] = nd.normal();
-                                let ni = state_info[pi(x + dx + nx, y + dy + ny, z + dz + nz)];
+                                let ni = &info[pad.blocks[pi(x + dx + nx, y + dy + ny, z + dz + nz)]
+                                    as usize];
                                 ni.solid || ni.leaves
                             });
                             if other_surrounded {
@@ -1257,7 +1223,7 @@ impl Mesher<'_> {
                                 .visibility
                                 .should_render_face(
                                     BlockStateId(id),
-                                    BlockStateId(neighbor_id),
+                                    BlockStateId(neighbor),
                                     d,
                                     true,
                                 )
@@ -1356,18 +1322,6 @@ impl Mesher<'_> {
         } else {
             &mut out.solid
         };
-        // Per-quad constants computed once outside the vertex loop:
-        // - `layer` depends only on `face.opaque` and `force_opaque`.
-        // - `facing_bits` depends only on `q.facing`.
-        // - `tier_alpha` encodes the emission tier in the alpha byte; OR'ed
-        //   with `pack_rgb(rgb)` per vertex since they touch disjoint bytes.
-        let layer = if (face.opaque && !face.translucent) || force_opaque {
-            face.layer as u16 | OPAQUE_LAYER
-        } else {
-            face.layer as u16
-        };
-        let facing_bits = ((q.facing as u32) & 0x7) << 28;
-        let tier_alpha = emitting(0, tier) & !FLUID_FACE_BITS;
         for i in 0..4 {
             let g = gray[i] as u32;
             let rgb = match tint {
@@ -1378,8 +1332,15 @@ impl Mesher<'_> {
             target.push(TerrainVertex::new(
                 [p[0] + origin[0], p[1] + origin[1], p[2] + origin[2]],
                 q.uv[i],
-                layer,
-                pack_rgb(rgb) | tier_alpha | facing_bits,
+                // Opaque leaves (forceOpaque) and quads over opaque texels draw in the
+                // solid layer: no alpha cutout (a dirt path's side skips its clear top row).
+                if (face.opaque && !face.translucent) || force_opaque {
+                    face.layer as u16 | OPAQUE_LAYER
+                } else {
+                    face.layer as u16
+                },
+                (emitting(pack_rgb(rgb), tier) & !FLUID_FACE_BITS)
+                    | (((q.facing as u32) & 0x7) << 28),
                 pack_coords(lighting::with_emission(coords[i], q.light_emission)),
             ));
         }

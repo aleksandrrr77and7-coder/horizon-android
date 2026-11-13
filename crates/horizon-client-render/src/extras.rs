@@ -1,7 +1,7 @@
-//! Voxelix's optional extras (minimap, lighting, inventory tools): their
+//! Horizon's optional extras (minimap, lighting, inventory tools): their
 //! settings, kept in `horizon-extras.txt` next to `options.txt` so that file
 //! stays exactly vanilla's, and the logic behind them. Every extra is off by
-//! default; see `docs/extras.md`. Voxelix's own switches outside the Extras page
+//! default; see `docs/extras.md`. Horizon's own switches outside the Extras page
 //! (No AI, Agent Control, Discord Rich Presence) are kept here too.
 use std::{collections::VecDeque, fs, path::Path};
 
@@ -112,7 +112,7 @@ pub struct Extras {
     /// Agents may control the game the player starts: it opens its control socket for
     /// horizon-ctl and MCP clients (off by default; an agent's own launch always opens it).
     pub agent_control: bool,
-    /// "Playing Voxelix" on the player's Discord profile (`discord_presence`; on by default).
+    /// "Playing Horizon" on the player's Discord profile (`discord_presence`; on by default).
     pub discord_presence: bool,
 }
 impl Default for Extras {
@@ -389,10 +389,10 @@ pub enum Item {
     MouseTweaksWheel,
     Sort,
     SortKey,
-    /// Not on the Extras page: Voxelix Settings shows No AI, its AI Agent page Agent Control.
+    /// Not on the Extras page: Horizon Settings shows No AI, its AI Agent page Agent Control.
     NoAi,
     AgentControl,
-    /// On the Voxelix Settings page.
+    /// On the Horizon Settings page.
     DiscordPresence,
 }
 /// The Extras page: headers and items.
@@ -470,7 +470,7 @@ impl Item {
                 "Hides and turns off every AI feature: agent control, horizon-ctl and the MCP servers. The launcher's switch too."
             }
             Item::DiscordPresence => {
-                "Shows Playing Voxelix on your Discord profile while Discord runs: menus, single player or multiplayer, the dimension and the time played. Never a world's name or a server's address."
+                "Shows Playing Horizon on your Discord profile while Discord runs: menus, single player or multiplayer, the dimension and the time played. Never a world's name or a server's address."
             }
             Item::AgentControl => {
                 "Your own AI agent can play this game through horizon-ctl or an MCP client, on this computer only."

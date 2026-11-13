@@ -82,7 +82,7 @@ fn save_file(file: &Path, report: bool) -> std::result::Result<(), String> {
                 .call_method(&dir, "getAbsolutePath", "()Ljava/lang/String;", &[])?
                 .l()?;
             let value: String = env.get_string((&path).into())?.into();
-            Some(PathBuf::from(value).join("VoxelixAndroid"))
+            Some(PathBuf::from(value).join("HorizonAndroid"))
         } else {
             None
         };

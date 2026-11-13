@@ -129,7 +129,7 @@ struct Session {
 }
 impl Session {
     fn new(generator: Arc<Recorder>, context: Arc<WorkerContext>) -> Self {
-        let mut streaming = Streaming::new(generator.clone(), context, 3, 128);
+        let mut streaming = Streaming::new(generator.clone(), context, 3);
         streaming.radius = 4;
         Self {
             streaming,

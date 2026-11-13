@@ -75,7 +75,7 @@ fn a_tall_column_streams_lights_and_meshes_to_its_top() {
     });
     let state = |name: &str| assets.registry.default_state(name).unwrap().0;
     let (stone, torch) = (state("minecraft:stone"), state("minecraft:torch"));
-    let mut streaming = Streaming::new(Arc::new(Spires { stone, layout }), context.clone(), 2, 128);
+    let mut streaming = Streaming::new(Arc::new(Spires { stone, layout }), context.clone(), 2);
     streaming.radius = 2;
     let mut world = World::new(BlockStateId(0), 0);
     world.shape = shape;

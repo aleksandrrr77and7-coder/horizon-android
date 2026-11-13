@@ -137,34 +137,17 @@ pub fn chosen_present_mode(
     vsync: bool,
     setting: Option<PresentMode>,
 ) -> Option<PresentMode> {
-    // VSync on always means Fifo, in a window and in fullscreen alike.
-    if vsync {
-        return supported.contains(&PresentMode::Fifo).then_some(PresentMode::Fifo);
+    // A Mailbox present can block for seconds in Android's GLES/Vulkan
+    // drivers (seen on Mali) and ANR the activity during loading. The
+    // Android surface stays on vsync; desktop keeps the setting.
+    if cfg!(target_os = "android") {
+        return [PresentMode::Fifo, PresentMode::Immediate]
+            .into_iter()
+            .find(|mode| supported.contains(mode));
     }
-    // With VSync off, honour the user's present-mode setting when the surface
-    // supports it. On Android, Mailbox can stall for seconds in some GLES/
-    // Vulkan drivers (seen on Mali) and ANR the activity during loading, so
-    // prefer Immediate over Mailbox on Android; desktop keeps the user's exact
-    // choice.
-    if let Some(mode) = setting {
-        if supported.contains(&mode) {
-            if cfg!(target_os = "android") && mode == PresentMode::Mailbox {
-                return supported.contains(&PresentMode::Immediate)
-                    .then_some(PresentMode::Immediate)
-                    .or_else(|| {
-                        supported
-                            .contains(&PresentMode::Fifo)
-                            .then_some(PresentMode::Fifo)
-                    });
-            }
-            return Some(mode);
-        }
-    }
-    // Vanilla's choice: the first of Immediate, Mailbox and Fifo the surface
-    // supports.
-    [PresentMode::Immediate, PresentMode::Mailbox, PresentMode::Fifo]
-        .into_iter()
-        .find(|m| supported.contains(m))
+    setting
+        .filter(|m| !vsync && supported.contains(m))
+        .or_else(|| vsync_present_mode(supported, vsync))
 }
 
 /// `FramerateLimiter.limitDisplayFPS` with an injectable clock so the sleep

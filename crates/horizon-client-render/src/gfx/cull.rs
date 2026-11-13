@@ -39,6 +39,8 @@ use std::sync::{
 };
 
 const WORDS: u64 = 5 * 4;
+/// Phase 1's sections are each tested every `RETEST` frames.
+const RETEST: u32 = 8;
 /// Culling runs while the last result read back hid at least this share of
 /// the frame's solid indices: below it the test and the second pass cost
 /// more than they save. Else one frame in `PROBE` tests every section.
@@ -101,7 +103,8 @@ pub enum DepthTest {
 
 /// The Vulkan entry point: the depth test forced early, which naga cannot
 /// write for Metal (so it is not in `cull.wgsl`, which every backend takes).
-const EARLY_TEST: &str = "@fragment
+const EARLY_TEST: &str = "
+@fragment
 @early_depth_test(force)
 fn fs_box_early(in: Box) -> @location(0) vec4<f32> {
     see(in.test);
@@ -149,12 +152,6 @@ pub struct Cull {
     pub always: bool,
     /// Frames with fewer sections in view than this do not cull.
     pub min_sections: usize,
-    /// How often each phase-1 section is retested (frames). Lower = fresher culling.
-    pub retest: u32,
-    /// Maximum number of section boxes tested per frame.
-    pub max_tests_per_frame: usize,
-    /// Whether occlusion culling is enabled at all.
-    pub enabled: bool,
 }
 
 fn buffer(
@@ -181,13 +178,6 @@ const RESULTS_USAGE: wgpu::BufferUsages =
 const READBACK_USAGE: wgpu::BufferUsages =
     wgpu::BufferUsages::MAP_READ.union(wgpu::BufferUsages::COPY_DST);
 
-// Android cull buffer growth caps: Adreno 610's shared memory system can't
-// afford unbounded reallocations during camera movement.
-#[cfg(target_os = "android")]
-const MAX_PHASE2_CAPACITY: u64 = 4096;
-#[cfg(target_os = "android")]
-const MAX_TESTS_CAPACITY: u64 = 4096;
-
 impl Cull {
     /// The device feature culling needs, where the adapter has it.
     pub fn features(adapter: &wgpu::Adapter) -> wgpu::Features {
@@ -198,6 +188,9 @@ impl Cull {
     /// with the instance counts the GPU wrote, with fragment shaders that
     /// write storage.
     pub fn supported(adapter: &wgpu::Adapter, device: &wgpu::Device) -> Option<DepthTest> {
+        if cfg!(target_os = "android") {
+            return None;
+        }
         let depth_test = match adapter.get_info().backend {
             wgpu::Backend::Vulkan
                 if device
@@ -361,9 +354,6 @@ impl Cull {
             hidden: ([0; 2], 1.0),
             always: false,
             min_sections: 0,
-            retest: 4,
-            max_tests_per_frame: 2048,
-            enabled: true,
         }
     }
 
@@ -419,11 +409,7 @@ impl Cull {
     /// solid indices: tested in turn.
     pub fn drawn(&mut self, index: usize, slot: u32, indices: u32) {
         self.total += u64::from(indices);
-        if indices > 0
-            && self.enabled
-            && (self.probe || slot.wrapping_add(self.stamp).is_multiple_of(self.retest))
-            && self.test_data.len() < self.max_tests_per_frame
-        {
+        if indices > 0 && (self.probe || slot.wrapping_add(self.stamp).is_multiple_of(RETEST)) {
             self.push([index as u32, 0, 0, 0], slot, indices);
         }
     }
@@ -431,7 +417,7 @@ impl Cull {
     /// A section left to phase 2: its `draws` from phase 2's `first`.
     pub fn deferred(&mut self, index: usize, slot: u32, first: usize, draws: usize, indices: u32) {
         self.total += u64::from(indices);
-        if draws > 0 && self.enabled && self.test_data.len() < self.max_tests_per_frame {
+        if draws > 0 {
             self.push([index as u32, first as u32, draws as u32, 0], slot, indices);
         }
     }
@@ -456,71 +442,49 @@ impl Cull {
     ) {
         let draws = phase2.len() as u64;
         if draws > self.phase2_capacity {
-            let needed = draws.next_power_of_two();
-            let capped = if cfg!(target_os = "android") {
-                needed.min(crate::gfx::cull::MAX_PHASE2_CAPACITY)
-            } else {
-                needed
-            };
-            if capped > self.phase2_capacity {
-                self.phase2_capacity = capped;
-                self.phase2 = buffer(
-                    device,
-                    "Section draws, phase 2",
-                    self.phase2_capacity * WORDS,
-                    PHASE2_USAGE,
-                );
-                self.group = None;
-            }
+            self.phase2_capacity = draws.next_power_of_two();
+            self.phase2 = buffer(
+                device,
+                "Section draws, phase 2",
+                self.phase2_capacity * WORDS,
+                PHASE2_USAGE,
+            );
+            self.group = None;
         }
         let tests = self.test_data.len() as u64;
         if tests > self.tests_capacity {
-            let needed = tests.next_power_of_two();
-            let capped = if cfg!(target_os = "android") {
-                needed.min(crate::gfx::cull::MAX_TESTS_CAPACITY)
-            } else {
-                needed
-            };
-            if capped > self.tests_capacity {
-                self.tests_capacity = capped;
-                self.tests = buffer(
-                    device,
-                    "Section tests",
-                    self.tests_capacity * 16,
-                    TESTS_USAGE,
-                );
-                self.results = buffer(
-                    device,
-                    "Section test results",
-                    self.tests_capacity * 4,
-                    RESULTS_USAGE,
-                );
-                self.group = None;
-            }
+            self.tests_capacity = tests.next_power_of_two();
+            self.tests = buffer(
+                device,
+                "Section tests",
+                self.tests_capacity * 16,
+                TESTS_USAGE,
+            );
+            self.results = buffer(
+                device,
+                "Section test results",
+                self.tests_capacity * 4,
+                RESULTS_USAGE,
+            );
+            self.group = None;
         }
         if draws > 0 {
-            // Cap phase2 draws to phase2_capacity: when the Android buffer cap is hit,
-            // writing more phase2 entries than the buffer holds would overflow GPU memory.
-            let upload_len = phase2.len().min(self.phase2_capacity as usize);
-            uploads.buffer(encoder, &self.phase2, 0, bytemuck::cast_slice(&phase2[..upload_len]));
+            uploads.buffer(encoder, &self.phase2, 0, bytemuck::cast_slice(phase2));
         }
         if tests > 0 {
-            // Cap cull tests to tests_capacity: when the Android buffer cap is hit,
-            // writing more tests than the buffer holds would overflow GPU memory.
-            let upload_len = self.test_data.len().min(self.tests_capacity as usize);
             uploads.buffer(
                 encoder,
                 &self.tests,
                 0,
-                bytemuck::cast_slice(&self.test_data[..upload_len]),
+                bytemuck::cast_slice(&self.test_data),
             );
-            let params = Params {
-                stamp: self.stamp,
-                big: BIG,
-                pad: [0; 2],
-            };
-            uploads.buffer(encoder, &self.params, 0, bytemuck::bytes_of(&params));
         }
+        let params = Params {
+            stamp: self.stamp,
+            big: BIG,
+            pad: [0; 2],
+        };
+        uploads.buffer(encoder, &self.params, 0, bytemuck::bytes_of(&params));
         if !self
             .group
             .as_ref()

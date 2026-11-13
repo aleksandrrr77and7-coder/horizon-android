@@ -1586,14 +1586,14 @@ async fn open_backend(
     let mobile = cfg!(target_os = "android");
     let compatibility = crate::android_runtime::compatibility();
     let features = timing::GpuTimer::features(&adapter)
-        | if compatibility {
+        | if compatibility || mobile {
             wgpu::Features::empty()
         } else {
             cull::Cull::features(&adapter)
         }
         | oit::features(&adapter)
         | (adapter.features()
-            & (if compatibility {
+            & (if compatibility || mobile {
                 wgpu::Features::empty()
             } else {
                 wgpu::Features::INDIRECT_FIRST_INSTANCE
@@ -3841,7 +3841,7 @@ impl Renderer {
             block_entity_revision: next_block_entity_revision(),
             light_blocks: Default::default(),
             light_revision: 0,
-            occlusion: occlusion::Occlusion::new(crate::chunk::MIN_Y, crate::chunk::HEIGHT / 16, 1),
+            occlusion: occlusion::Occlusion::new(crate::chunk::MIN_Y, crate::chunk::HEIGHT / 16),
             layout: crate::chunk::ColumnLayout::VANILLA,
             world_post,
             #[cfg(target_os = "android")]
@@ -5030,7 +5030,7 @@ impl Renderer {
             self.occlusion.clear();
         } else {
             self.layout = layout;
-            self.occlusion = occlusion::Occlusion::new(layout.min_y(), layout.sections() as i32, 1);
+            self.occlusion = occlusion::Occlusion::new(layout.min_y(), layout.sections() as i32);
             self.sections.set_min_y(layout.min_y());
         }
     }

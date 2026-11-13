@@ -114,7 +114,7 @@ impl Report {
     pub fn text(&self) -> String {
         let comment = COMMENTS[self.time.timestamp().rem_euclid(COMMENTS.len() as i64) as usize];
         let mut out = String::new();
-        let _ = writeln!(out, "---- Voxelix Crash Report ----");
+        let _ = writeln!(out, "---- Horizon Crash Report ----");
         let _ = writeln!(out, "// {comment}\n");
         let _ = writeln!(out, "Time: {}", self.time.format("%Y-%m-%d %H:%M:%S"));
         let _ = writeln!(out, "Description: {}\n", self.description);
