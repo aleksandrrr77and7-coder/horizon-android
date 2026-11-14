@@ -125,9 +125,13 @@ jobs:
       - name: Verify APK signature
         env:
           ABI: ${{ matrix.abi }}
-          TOOLS_DIR: ${{ env.ANDROID_HOME }}/build-tools/35.0.0
         run: |
           apk=".local/android/apk/${ABI}/horizon-android-public.apk"
+          TOOLS_DIR="${ANDROID_HOME}/build-tools/35.0.0"
+          if [ ! -f "$TOOLS_DIR/lib/apksigner.jar" ]; then
+            echo "::error::apksigner.jar not found at $TOOLS_DIR/lib/apksigner.jar"
+            exit 1
+          fi
           "${JAVA_HOME}/bin/java" -jar "$TOOLS_DIR/lib/apksigner.jar" verify --verbose "$apk"
       - name: Verify package ID, version, ABI
         env:
