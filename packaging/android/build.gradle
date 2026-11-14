@@ -26,12 +26,12 @@ android {
                     ?: file('../../.local/android/release.keystore')
             def ksPassword = providers.gradleProperty('releaseKeystorePassword').orNull
                     ?: System.env.RELEASE_KEYSTORE_PASSWORD
-            def keyAlias = providers.gradleProperty('releaseKeyAlias').orNull
+            def releaseKeyAlias = providers.gradleProperty('releaseKeyAlias').orNull
                     ?: System.env.RELEASE_KEY_ALIAS
-            def keyPassword = providers.gradleProperty('releaseKeyPassword').orNull
+            def releaseKeyPassword = providers.gradleProperty('releaseKeyPassword').orNull
                     ?: System.env.RELEASE_KEY_PASSWORD
 
-            if (ksFile == null || ksPassword == null || keyAlias == null || keyPassword == null) {
+            if (ksFile == null || ksPassword == null || releaseKeyAlias == null || releaseKeyPassword == null) {
                 throw new InvalidUserDataException(
                     'Release signing requires releaseKeystoreFile, releaseKeystorePassword, ' +
                     'releaseKeyAlias and releaseKeyPassword (via Gradle properties or environment variables).')
@@ -39,8 +39,8 @@ android {
 
             storeFile file(ksFile)
             storePassword ksPassword
-            keyAlias keyAlias
-            keyPassword keyPassword
+            keyAlias releaseKeyAlias
+            keyPassword releaseKeyPassword
         }
     }
     buildTypes {
