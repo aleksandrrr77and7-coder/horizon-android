@@ -121,9 +121,7 @@ jobs:
         run: |
           python3 tools/android_build.py --abi "$ABI" --public --profile release \
             --sdk "$ANDROID_HOME" --java-home "$JAVA_HOME" --gradle "$(command -v gradle)" \
-            --ndk-version 28.2.13676358 --build-tools-version 35.0.0 \
-            -PappId=dev.horizon.android \
-            -PdevVersionCode="$VERSION_CODE"
+            --ndk-version 28.2.13676358 --build-tools-version 35.0.0
       - name: Verify APK signature
         env:
           ABI: ${{ matrix.abi }}
