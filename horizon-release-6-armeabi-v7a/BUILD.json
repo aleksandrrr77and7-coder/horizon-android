@@ -1,0 +1,10 @@
+{
+  "commit": "c91436722370b0fa196e18b5fc23672ffa4b54bf",
+  "abi": "armeabi-v7a",
+  "profile": "release",
+  "package": "dev.horizon.android",
+  "version_name": "1.0",
+  "version_code": 1014,
+  "experimental": false,
+  "run": "https://github.com/aleksandrrr77and7-coder/horizon-android/actions/runs/43602433312"
+}

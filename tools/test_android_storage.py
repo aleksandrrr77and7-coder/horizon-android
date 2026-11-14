@@ -163,7 +163,7 @@ extern "system" fn Java_dev_horizon_storageprobe_Probe_nativeCheck(
     manifest = '''<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="dev.horizon.storageprobe">
 <uses-sdk android:minSdkVersion="28" android:targetSdkVersion="35"/>
 <application android:debuggable="true" android:label="Horizon Storage Probe" android:extractNativeLibs="true">
-<provider android:name="dev.horizon.android.HorizonDocumentsProvider" android:authorities="dev.horizon.storageprobe.documents" android:exported="true" android:grantUriPermissions="true" android:permission="android.permission.MANAGE_DOCUMENTS"><intent-filter><action android:name="android.content.action.DOCUMENTS_PROVIDER"/></intent-filter></provider>
+<provider android:name="dev.xaxabka.voxelix.HorizonDocumentsProvider" android:authorities="dev.horizon.storageprobe.documents" android:exported="true" android:grantUriPermissions="true" android:permission="android.permission.MANAGE_DOCUMENTS"><intent-filter><action android:name="android.content.action.DOCUMENTS_PROVIDER"/></intent-filter></provider>
 <activity android:name="dev.horizon.storageprobe.Probe" android:exported="true"/>
 </application></manifest>'''
     (out / 'AndroidManifest.xml').write_text(manifest, encoding='utf-8')

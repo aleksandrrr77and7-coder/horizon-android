@@ -30,7 +30,7 @@ Device observations recorded before that integration must be repeated on the res
 
 ## Files and profiles
 
-Normal installed package: `dev.horizon.android`.
+Normal installed package: `dev.xaxabka.voxelix`.
 The physical internal directory is normally `/data/user/0/dev.horizon.android/files`.
 Profile 0 uses this directory; additional profiles use `profiles/profile-<id>` beneath it.
 The game keeps `saves`, `horizon-mods`, `resourcepacks`, `shaderpacks` and settings in that profile.

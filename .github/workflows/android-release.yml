@@ -143,12 +143,12 @@ jobs:
           "${ANDROID_HOME}/build-tools/35.0.0/aapt" dump badging "$apk" | grep -E "^package:|application-label:|native-code:"
           echo ""
           echo "=== Expected checks ==="
-          echo "Expected package: dev.horizon.android"
+          echo "Expected package: dev.xaxabka.voxelix"
           echo "Expected versionName: 1.0"
           echo "Expected versionCode: $VERSION_CODE"
           echo "Expected ABI: $ABI"
           echo ""
-          "${ANDROID_HOME}/build-tools/35.0.0/aapt" dump badging "$apk" | grep -q "^package: name='dev.horizon.android' versionCode='$VERSION_CODE' versionName='1.0'" || {
+          "${ANDROID_HOME}/build-tools/35.0.0/aapt" dump badging "$apk" | grep -q "^package: name='dev.xaxabka.voxelix' versionCode='$VERSION_CODE' versionName='1.0'" || {
             echo "::error::Package ID, versionCode or versionName mismatch!"
             exit 1
           }

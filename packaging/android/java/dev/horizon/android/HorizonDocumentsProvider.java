@@ -1,4 +1,4 @@
-package dev.horizon.android;
+package dev.xaxabka.voxelix;
 
 import android.database.Cursor;
 import android.database.MatrixCursor;
