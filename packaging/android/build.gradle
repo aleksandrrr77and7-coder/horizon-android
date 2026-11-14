@@ -66,5 +66,6 @@ android {
         res.srcDirs = ['res']
     }
     packaging { jniLibs { useLegacyPackaging = true; keepDebugSymbols += '**/*.so' } }
-    buildDirectory = file('../../.local/android/gradle-build')
 }
+
+layout.buildDirectory.set(file('../../.local/android/gradle-build'))
